@@ -4,26 +4,32 @@ struct ContentView: View {
     @StateObject private var viewModel = AppListViewModel()
     
     var body: some View {
-        ZStack {
-            // Material background
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
-            
-            // Content layer
-            VStack(spacing: 20) {
-                // Search Bar - with larger clickable area
-                VStack {
-                    SearchField(text: $viewModel.searchText, placeholder: "搜索应用")
-                        .frame(width: 400, height: 32)
-                }
-                .padding(.horizontal, 40)
-                .padding(.vertical, 20)
-                .background(Color.black.opacity(0.3))
-                .cornerRadius(16)
-                .padding(.top, 60)
+        GeometryReader { geometry in
+            ZStack {
+                // Material background
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea()
                 
-                IconGridView(viewModel: viewModel)
+                // Content layer
+                VStack(spacing: 0) {
+                    // Search Bar - with larger clickable area
+                    VStack {
+                        SearchField(text: $viewModel.searchText, placeholder: "搜索应用")
+                            .frame(width: 400, height: 32)
+                    }
+                    .frame(height: 120)  // Fixed height for search area
+                    .frame(maxWidth: .infinity)
+                    .background(Color.black.opacity(0.3))
+                    .cornerRadius(16)
+                    .padding(.horizontal, 100)
+                    .padding(.top, 60)
+                    
+                    // Icon Grid - constrained to remaining space
+                    IconGridView(viewModel: viewModel)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.top, 20)
+                }
             }
         }
         .onAppear {
