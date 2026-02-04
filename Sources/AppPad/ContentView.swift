@@ -23,6 +23,14 @@ struct ContentView: View {
                 Rectangle()
                     .fill(.ultraThinMaterial)
                     .ignoresSafeArea()
+                    .onTapGesture {
+                        // Click on background closes the window
+                        Task { @MainActor in
+                            if let window = NSApp.keyWindow {
+                                WindowAnimationManager.shared.hideWindow(window)
+                            }
+                        }
+                    }
                 
                 // Icon Grid
                 IconGridView(viewModel: viewModel, currentPage: $currentPage)
