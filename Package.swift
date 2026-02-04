@@ -17,7 +17,10 @@ let package = Package(
             path: "Sources/AppPad",
             exclude: [],
             sources: nil, // Automatically picks up .swift files
-            resources: []
+            resources: [],
+            linkerSettings: [
+                .linkedFramework("AppKit")
+            ]
         )
     ]
 )

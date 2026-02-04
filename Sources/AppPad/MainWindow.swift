@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 class MainWindow: NSWindow {
-    init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+    override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
         
         // 1. Transparent Background
@@ -12,7 +12,7 @@ class MainWindow: NSWindow {
         // 2. Window Level (Above Dock and other apps)
         // NSWindow.Level.mainMenu is high, we add 1 to be even higher but just below ScreenSaver/Help usually.
         // Spec asks for mainMenu + 1.
-        self.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) + 1)
+        self.level = NSWindow.Level(rawValue: Int(NSWindow.Level.mainMenu.rawValue) + 1)
         
         // 3. Collection Behavior
         // .canJoinAllSpaces: visible on all desktops
