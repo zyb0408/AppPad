@@ -2,7 +2,8 @@ import AppKit
 import SwiftUI
 
 /// Manages window animations for AppPad
-class WindowAnimationManager {
+@MainActorweixin
+final class WindowAnimationManager: @unchecked Sendable {
     static let shared = WindowAnimationManager()
     
     private init() {}

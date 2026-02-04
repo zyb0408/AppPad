@@ -3,7 +3,8 @@ import AppKit
 import Carbon
 
 /// Global hotkey manager for AppPad
-class GlobalHotkeyManager {
+@MainActor
+final class GlobalHotkeyManager: @unchecked Sendable {
     static let shared = GlobalHotkeyManager()
     
     private var eventHotKey: EventHotKeyRef?
@@ -35,7 +36,9 @@ class GlobalHotkeyManager {
         InstallEventHandler(
             GetApplicationEventTarget(),
             { (nextHandler, theEvent, userData) -> OSStatus in
-                GlobalHotkeyManager.shared.onActivate?()
+                Task { @MainActor in
+                    GlobalHotkeyManager.shared.onActivate?()
+                }
                 return noErr
             },
             1,
@@ -70,10 +73,10 @@ class GlobalHotkeyManager {
     
     /// Register default hotkey (Option + Space)
     func registerDefaultHotkey(onActivate: @escaping () -> Void) {
-        // Space key = 49, Option = optionKey
+        // Space key = 49, Option = optionKey (2048)
         registerHotkey(
             keyCode: 49,
-            modifiers: UInt32(optionKey),
+            modifiers: 2048, // optionKey constant value
             onActivate: onActivate
         )
     }
@@ -102,12 +105,4 @@ enum KeyCode: UInt32 {
     case rightArrow = 124
     case downArrow = 125
     case upArrow = 126
-}
-
-// Modifier flags
-extension UInt32 {
-    static let cmdKey = UInt32(cmdKey)
-    static let shiftKey = UInt32(shiftKey)
-    static let optionKey = UInt32(optionKey)
-    static let controlKey = UInt32(controlKey)
 }

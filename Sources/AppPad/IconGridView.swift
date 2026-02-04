@@ -94,7 +94,9 @@ struct IconGridView: View {
         let url = URL(fileURLWithPath: icon.iconPath)
         NSWorkspace.shared.open(url)
         // Hide the window after launching
-        NSApp.hide(nil)
+        Task { @MainActor in
+            NSApp.hide(nil)
+        }
     }
 }
 

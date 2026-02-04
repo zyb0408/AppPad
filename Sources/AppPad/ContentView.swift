@@ -10,8 +10,10 @@ struct ContentView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     // Click background to hide with animation
-                    if let window = NSApp.keyWindow {
-                        WindowAnimationManager.shared.hideWindow(window)
+                    Task { @MainActor in
+                        if let window = NSApp.keyWindow {
+                            WindowAnimationManager.shared.hideWindow(window)
+                        }
                     }
                 }
             
@@ -60,8 +62,10 @@ struct ContentView: View {
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 if event.keyCode == 53 { // 53 is Esc
                     // Hide window with animation
-                    if let window = NSApp.keyWindow {
-                        WindowAnimationManager.shared.hideWindow(window)
+                    Task { @MainActor in
+                        if let window = NSApp.keyWindow {
+                            WindowAnimationManager.shared.hideWindow(window)
+                        }
                     }
                     return nil
                 }
