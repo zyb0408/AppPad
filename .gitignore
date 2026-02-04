@@ -1,5 +1,6 @@
 .build
 .build_dist
 AppPad.dmg
-
+.swiftpm
+*.xcresult
 .DS_Store
