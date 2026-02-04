@@ -20,6 +20,19 @@ struct ContentView: View {
         }
         .onAppear {
             viewModel.loadApps()
+            
+            // Add Esc key monitor
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if event.keyCode == 53 { // 53 is Esc
+                    NSApp.terminate(nil)
+                    return nil
+                }
+                return event
+            }
+        }
+        .onTapGesture {
+            // Click outside grid to close
+            NSApp.terminate(nil)
         }
     }
 }
