@@ -31,4 +31,12 @@ class MainWindow: NSWindow {
         // Make it clickable
         self.ignoresMouseEvents = false
     }
+    
+    override var canBecomeKey: Bool {
+        return true
+    }
+    
+    override var canBecomeMain: Bool {
+        return true
+    }
 }

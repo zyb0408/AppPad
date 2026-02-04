@@ -26,57 +26,56 @@ struct IconGridView: View {
     
     var body: some View {
         ZStack {
-            // Gesture Layer
+            // Gesture Layer: Fills the entire view to capture swipes
             PageGestureView(
                 onSwipeLeft: {
                     if currentPage > 0 {
-                        withAnimation { currentPage -= 1 }
+                        withAnimation(.easeOut(duration: 0.3)) { currentPage -= 1 }
                     }
                 },
                 onSwipeRight: {
                     if currentPage < pages.count - 1 {
-                        withAnimation { currentPage += 1 }
+                        withAnimation(.easeOut(duration: 0.3)) { currentPage += 1 }
                     }
                 }
             )
             
             VStack {
-            TabView(selection: $currentPage) {
-                ForEach(0..<pages.count, id: \.self) { pageIndex in
-                    LazyVGrid(columns: columns, spacing: 40) {
-                        ForEach(pages[pageIndex]) { icon in
-                            AppIconView(icon: icon, size: iconSize)
-                        }
-                    }
-                    .padding(60)
-                    .tag(pageIndex)
-                }
-            }
-            .tabViewStyle(.automatic) // .page doesn't exist on macOS, we use automatic which is usually Tabs, but we can hide tabs or implement custom switcher if needed.
-            // On macOS, basic TabView usually shows tabs on top. To mimic Launchpad, we might need a custom pager.
-            // Let's stick to a simple TabView for now and see if we can hide tabs, OR build a custom view switcher.
-            // Actually, for "Launchpad" look, a horizontal ScrollView with paging is often better, or just standard TabView with tabs hidden.
-            // Let's try standard TabView but we might get tabs on top.
-            
-            // Allow swiping/paging via indicators
-            if pages.count > 1 {
-                HStack(spacing: 8) {
-                    ForEach(0..<pages.count, id: \.self) { index in
-                        Circle()
-                            .fill(currentPage == index ? Color.white : Color.white.opacity(0.3))
-                            .frame(width: 8, height: 8)
-                            .onTapGesture {
-                                withAnimation {
-                                    currentPage = index
+                // Content with Offset for Pagination
+                GeometryReader { geometry in
+                    HStack(spacing: 0) {
+                        ForEach(0..<pages.count, id: \.self) { pageIndex in
+                            LazyVGrid(columns: columns, spacing: 40) {
+                                ForEach(pages[pageIndex]) { icon in
+                                    AppIconView(icon: icon, size: iconSize)
                                 }
                             }
+                            .padding(60)
+                            .frame(width: geometry.size.width)
+                        }
                     }
+                    .offset(x: -CGFloat(currentPage) * geometry.size.width)
                 }
-                .padding(.bottom, 20)
+                
+                // Page Indicators
+                if pages.count > 1 {
+                    HStack(spacing: 8) {
+                        ForEach(0..<pages.count, id: \.self) { index in
+                            Circle()
+                                .fill(currentPage == index ? Color.white : Color.white.opacity(0.3))
+                                .frame(width: 8, height: 8)
+                                .onTapGesture {
+                                    withAnimation {
+                                        currentPage = index
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
             }
         }
     }
-}
 }
 
 struct AppIconView: View {
