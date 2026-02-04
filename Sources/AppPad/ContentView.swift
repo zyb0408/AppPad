@@ -15,8 +15,26 @@ struct ContentView: View {
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
             
-            // 2. Icon Grid
-            IconGridView(viewModel: viewModel)
+            // 2. Icon Grid & Search
+            VStack(spacing: 20) {
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.white.opacity(0.8))
+                    TextField("Search Apps", text: $viewModel.searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.black.opacity(0.2))
+                .cornerRadius(12)
+                .frame(width: 300)
+                .padding(.top, 40)
+                
+                IconGridView(viewModel: viewModel)
+            }
         }
         .onAppear {
             viewModel.loadApps()

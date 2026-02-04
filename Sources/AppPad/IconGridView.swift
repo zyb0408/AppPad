@@ -19,13 +19,28 @@ struct IconGridView: View {
     
     // Helper to chunk the apps array into pages
     private var pages: [[AppIcon]] {
-        viewModel.apps.chunked(into: appsPerPage)
+        viewModel.filteredApps.chunked(into: appsPerPage)
     }
     
     @State private var currentPage = 0
     
     var body: some View {
-        VStack {
+        ZStack {
+            // Gesture Layer
+            PageGestureView(
+                onSwipeLeft: {
+                    if currentPage > 0 {
+                        withAnimation { currentPage -= 1 }
+                    }
+                },
+                onSwipeRight: {
+                    if currentPage < pages.count - 1 {
+                        withAnimation { currentPage += 1 }
+                    }
+                }
+            )
+            
+            VStack {
             TabView(selection: $currentPage) {
                 ForEach(0..<pages.count, id: \.self) { pageIndex in
                     LazyVGrid(columns: columns, spacing: 40) {
@@ -61,6 +76,7 @@ struct IconGridView: View {
             }
         }
     }
+}
 }
 
 struct AppIconView: View {
