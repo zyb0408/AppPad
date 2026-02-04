@@ -56,11 +56,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Host SwiftUI content
         window.contentView = NSHostingView(rootView: ContentView())
         
-        // Show window
-        window.makeKeyAndOrderFront(nil)
-        
-        // Activate app (so it receives input)
-        NSApp.activate(ignoringOtherApps: true)
+        // Don't show window initially - wait for user to trigger it
+        // window.makeKeyAndOrderFront(nil)
         
         self.mainWindow = window
         
@@ -76,5 +73,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func toggleWindow() {
         guard let window = mainWindow else { return }
         WindowAnimationManager.shared.toggleWindow(window)
+    }
+    
+    @MainActor
+    func openSettings() {
+        // Open settings window
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 }

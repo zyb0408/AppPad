@@ -22,32 +22,47 @@ struct PageGestureView: NSViewRepresentable {
         var onSwipeRight: (() -> Void)?
         
         private var accumulatedDeltaX: CGFloat = 0
+        private var hasTriggered = false
         
         override var acceptsFirstResponder: Bool { true }
         
         override func scrollWheel(with event: NSEvent) {
-            // Check for phase to detect discrete gestures if possible,
-            // but for smooth scroll wheel/trackpad, we accumulate delta.
+            // Reset on gesture begin
+            if event.phase == .began {
+                accumulatedDeltaX = 0
+                hasTriggered = false
+            }
             
+            // Don't accumulate if already triggered
+            guard !hasTriggered else {
+                if event.phase == .ended || event.phase == .cancelled {
+                    accumulatedDeltaX = 0
+                    hasTriggered = false
+                }
+                return
+            }
+            
+            // Accumulate delta
             accumulatedDeltaX += event.scrollingDeltaX
             
-            let threshold: CGFloat = 30.0
+            let threshold: CGFloat = 50.0 // Increased threshold for more deliberate swipes
             
             if accumulatedDeltaX < -threshold {
-                // Swipe Left (Content moves left, so finger moves right -> Previous Page? No, strictly:
-                // Swipe Left usually means "Show content to the right", i.e. Next Page.
-                // Standard macOS: Two finger swipe left -> Go Next.
-                onSwipeRight?() // Next Page
+                // Swipe Left -> Next Page
+                onSwipeRight?()
+                hasTriggered = true
                 accumulatedDeltaX = 0
             } else if accumulatedDeltaX > threshold {
                 // Swipe Right -> Previous Page
                 onSwipeLeft?()
+                hasTriggered = true
                 accumulatedDeltaX = 0
             }
             
-            // If dragging stops or changes direction significantly, reset
+            // Reset on gesture end
             if event.phase == .ended || event.phase == .cancelled {
                 accumulatedDeltaX = 0
+                hasTriggered = false
             }
         }
     }
