@@ -19,19 +19,17 @@ struct ContentView: View {
             VStack(spacing: 20) {
                 // Search Bar
                 HStack {
+                    // We use the native SearchField which includes the glass icon logic usually, 
+                    // but since we want custom styling, we'll keep the icon outside or let NSSearchField handle it?
+                    // NSSearchField has its own glass icon. Let's use that for standard feel, 
+                    // OR stick to our styling: Icon + Input.
+                    // Our SearchField wrapper is unbordered.
+                    
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.white.opacity(0.8))
                     
-                    ZStack(alignment: .leading) {
-                        if viewModel.searchText.isEmpty {
-                            Text("Search Apps")
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        TextField("", text: $viewModel.searchText)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 20, weight: .light))
-                            .foregroundColor(.white)
-                    }
+                    SearchField(text: $viewModel.searchText, placeholder: "Search Apps")
+                        .frame(height: 22)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
