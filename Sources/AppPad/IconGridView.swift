@@ -3,12 +3,12 @@ import AppKit
 
 struct IconGridView: View {
     @ObservedObject var viewModel: AppListViewModel
+    @Binding var currentPage: Int
     
     // Dynamic settings from AppStorage (matching SettingsView)
     @AppStorage("iconSize") private var iconSize: Double = 80.0
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
-    @AppStorage("gestureSensitivity") private var gestureSensitivity: Double = 0.5
     
     private var columns: [GridItem] {
         Array(repeating: GridItem(.fixed(iconSize), spacing: 40), count: gridColumns)
@@ -23,69 +23,42 @@ struct IconGridView: View {
         viewModel.filteredApps.chunked(into: appsPerPage)
     }
     
-    @State private var currentPage = 0
-    @State private var lastGestureTime: Date = Date.distantPast
-    
     var body: some View {
-        ZStack {
-            // Gesture Layer: Fills the entire view to capture swipes
-            PageGestureView(
-                onSwipeLeft: {
-                    let now = Date()
-                    if now.timeIntervalSince(lastGestureTime) > gestureSensitivity {
-                        if currentPage > 0 {
-                            withAnimation(.easeOut(duration: 0.3)) { currentPage -= 1 }
+        VStack {
+            // Content with Offset for Pagination
+            GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    ForEach(0..<pages.count, id: \.self) { pageIndex in
+                        LazyVGrid(columns: columns, spacing: 40) {
+                            ForEach(pages[pageIndex]) { icon in
+                                AppIconView(icon: icon, size: iconSize)
+                                    .onTapGesture {
+                                        launchApp(icon)
+                                    }
+                            }
                         }
-                        lastGestureTime = now
-                    }
-                },
-                onSwipeRight: {
-                    let now = Date()
-                    if now.timeIntervalSince(lastGestureTime) > gestureSensitivity {
-                        if currentPage < pages.count - 1 {
-                            withAnimation(.easeOut(duration: 0.3)) { currentPage += 1 }
-                        }
-                        lastGestureTime = now
+                        .padding(60)
+                        .frame(width: geometry.size.width)
                     }
                 }
-            )
+                .offset(x: -CGFloat(currentPage) * geometry.size.width)
+            }
             
-            VStack {
-                // Content with Offset for Pagination
-                GeometryReader { geometry in
-                    HStack(spacing: 0) {
-                        ForEach(0..<pages.count, id: \.self) { pageIndex in
-                            LazyVGrid(columns: columns, spacing: 40) {
-                                ForEach(pages[pageIndex]) { icon in
-                                    AppIconView(icon: icon, size: iconSize)
-                                        .onTapGesture {
-                                            launchApp(icon)
-                                        }
+            // Page Indicators
+            if pages.count > 1 {
+                HStack(spacing: 8) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        Circle()
+                            .fill(currentPage == index ? Color.white : Color.white.opacity(0.3))
+                            .frame(width: 8, height: 8)
+                            .onTapGesture {
+                                withAnimation {
+                                    currentPage = index
                                 }
                             }
-                            .padding(60)
-                            .frame(width: geometry.size.width)
-                        }
                     }
-                    .offset(x: -CGFloat(currentPage) * geometry.size.width)
                 }
-                
-                // Page Indicators
-                if pages.count > 1 {
-                    HStack(spacing: 8) {
-                        ForEach(0..<pages.count, id: \.self) { index in
-                            Circle()
-                                .fill(currentPage == index ? Color.white : Color.white.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                                .onTapGesture {
-                                    withAnimation {
-                                        currentPage = index
-                                    }
-                                }
-                        }
-                    }
-                    .padding(.bottom, 20)
-                }
+                .padding(.bottom, 20)
             }
         }
     }
@@ -155,8 +128,16 @@ extension Array {
 }
 
 #Preview {
-    ZStack {
-        Color.black
-        IconGridView(viewModel: AppListViewModel())
+    struct PreviewWrapper: View {
+        @State private var currentPage = 0
+        
+        var body: some View {
+            ZStack {
+                Color.black
+                IconGridView(viewModel: AppListViewModel(), currentPage: $currentPage)
+            }
+        }
     }
+    
+    return PreviewWrapper()
 }

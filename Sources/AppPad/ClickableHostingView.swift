@@ -119,9 +119,21 @@ class ClickableHostingView<Content: View>: NSHostingView<Content> {
             print("  → Found NSControl")
             return true
         }
+        if view is NSImageView {
+            print("  → Found NSImageView (likely app icon)")
+            return true
+        }
         
         // Check class name for specific interactive views
         let className = String(describing: type(of: view))
+        
+        // Check if it's a SwiftUI view that might be clickable
+        if className.contains("ImageView") ||
+           className.contains("DisplayList") ||
+           className.contains("CoreUI") {
+            print("  → Found SwiftUI Image-like view: \(className)")
+            return true
+        }
         
         // Check if it's a button-like view (for app icons)
         if className.contains("Button") && !className.contains("EventView") {
@@ -134,15 +146,25 @@ class ClickableHostingView<Content: View>: NSHostingView<Content> {
         var depth = 0
         while let parent = currentView?.superview {
             depth += 1
-            print("  → Checking parent \(depth): \(type(of: parent))")
+            let parentClass = String(describing: type(of: parent))
+            print("  → Checking parent \(depth): \(parentClass)")
             
             if parent is NSTextField || 
                parent is NSSearchField || 
                parent is NSButton ||
-               parent is NSControl {
+               parent is NSControl ||
+               parent is NSImageView {
                 print("  → Found interactive control in parent chain")
                 return true
             }
+            
+            // Check for SwiftUI views in parent chain
+            if parentClass.contains("ImageView") ||
+               parentClass.contains("DisplayList") {
+                print("  → Found SwiftUI interactive view in parent chain")
+                return true
+            }
+            
             currentView = parent
             
             // Don't go beyond this hosting view

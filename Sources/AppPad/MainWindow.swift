@@ -2,6 +2,12 @@ import AppKit
 import SwiftUI
 
 class MainWindow: NSWindow {
+    
+    // Gesture tracking properties
+    private var accumulatedDeltaX: CGFloat = 0
+    private var hasTriggered = false
+    private var isGestureActive = false
+    
     override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
         
@@ -11,25 +17,59 @@ class MainWindow: NSWindow {
         
         // 2. Window Level (Above Dock and other apps)
         // NSWindow.Level.mainMenu is high, we add 1 to be even higher but just below ScreenSaver/Help usually.
-        // Spec asks for mainMenu + 1.
-        self.level = NSWindow.Level(rawValue: Int(NSWindow.Level.mainMenu.rawValue) + 1)
-        
-        // 3. Collection Behavior
-        // .canJoinAllSpaces: visible on all desktops
-        // .fullScreenAuxiliary: allows it to be on top of full screen apps
+        self.level = .floating
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        self.hasShadow = false
+        self.isMovableByWindowBackground = false
         
-        // 4. Style Mask
-        // Borderless to remove title bar, FullSizeContentView to extend content
-        self.styleMask = [.borderless, .fullSizeContentView]
+        // Important: Allow the window to receive events
+        self.ignoresMouseEvents = false
+    }
+    
+    override func scrollWheel(with event: NSEvent) {
+        print("MainWindow: scrollWheel called - deltaX: \(event.scrollingDeltaX)")
         
-        // Center and maximize
-        if let screen = NSScreen.main {
-            self.setFrame(screen.frame, display: true)
+        // Reset on gesture begin
+        if event.phase == .began {
+            accumulatedDeltaX = 0
+            hasTriggered = false
+            isGestureActive = true
         }
         
-        // Make it clickable
-        self.ignoresMouseEvents = false
+        guard isGestureActive else {
+            super.scrollWheel(with: event)
+            return
+        }
+        
+        guard !hasTriggered else {
+            if event.phase == .ended || event.phase == .cancelled {
+                accumulatedDeltaX = 0
+                hasTriggered = false
+                isGestureActive = false
+            }
+            return
+        }
+        
+        accumulatedDeltaX += event.scrollingDeltaX
+        let threshold: CGFloat = 30.0
+        
+        if accumulatedDeltaX < -threshold {
+            print("MainWindow: Swipe Right detected")
+            NotificationCenter.default.post(name: .swipeRight, object: nil)
+            hasTriggered = true
+            accumulatedDeltaX = 0
+        } else if accumulatedDeltaX > threshold {
+            print("MainWindow: Swipe Left detected")
+            NotificationCenter.default.post(name: .swipeLeft, object: nil)
+            hasTriggered = true
+            accumulatedDeltaX = 0
+        }
+        
+        if event.phase == .ended || event.phase == .cancelled {
+            accumulatedDeltaX = 0
+            hasTriggered = false
+            isGestureActive = false
+        }
     }
     
     override var canBecomeKey: Bool {
@@ -51,4 +91,10 @@ class MainWindow: NSWindow {
         print("MainWindow: becomeKey called")
         super.becomeKey()
     }
+}
+
+// Notification names
+extension Notification.Name {
+    static let swipeLeft = Notification.Name("swipeLeft")
+    static let swipeRight = Notification.Name("swipeRight")
 }
