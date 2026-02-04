@@ -33,10 +33,22 @@ class MainWindow: NSWindow {
     }
     
     override var canBecomeKey: Bool {
+        print("MainWindow: canBecomeKey called")
         return true
     }
     
     override var canBecomeMain: Bool {
+        print("MainWindow: canBecomeMain called")
         return true
+    }
+    
+    override func mouseDown(with event: NSEvent) {
+        print("MainWindow: mouseDown called!")
+        super.mouseDown(with: event)
+    }
+    
+    override func becomeKey() {
+        print("MainWindow: becomeKey called")
+        super.becomeKey()
     }
 }
