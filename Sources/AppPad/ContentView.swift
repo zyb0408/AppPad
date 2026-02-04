@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var viewModel = AppListViewModel()
+    
     var body: some View {
         ZStack {
             // 1. Ultra Thin Material Background
@@ -14,7 +16,10 @@ struct ContentView: View {
                 .ignoresSafeArea()
             
             // 2. Icon Grid
-            IconGridView()
+            IconGridView(viewModel: viewModel)
+        }
+        .onAppear {
+            viewModel.loadApps()
         }
     }
 }
