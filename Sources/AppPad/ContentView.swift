@@ -12,10 +12,16 @@ struct ContentView: View {
             
             // Content layer
             VStack(spacing: 20) {
-                // Search Bar
-                SearchField(text: $viewModel.searchText, placeholder: "搜索应用")
-                    .frame(width: 300, height: 28)
-                    .padding(.top, 40)
+                // Search Bar - with larger clickable area
+                VStack {
+                    SearchField(text: $viewModel.searchText, placeholder: "搜索应用")
+                        .frame(width: 400, height: 32)
+                }
+                .padding(.horizontal, 40)
+                .padding(.vertical, 20)
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(16)
+                .padding(.top, 60)
                 
                 IconGridView(viewModel: viewModel)
             }

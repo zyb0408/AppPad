@@ -6,6 +6,7 @@ struct SearchField: NSViewRepresentable {
     var placeholder: String
     
     func makeNSView(context: Context) -> NSSearchField {
+        print("SearchField: makeNSView called")
         let searchField = NSSearchField()
         searchField.delegate = context.coordinator
         searchField.placeholderString = placeholder
@@ -22,6 +23,7 @@ struct SearchField: NSViewRepresentable {
             )
         }
         
+        print("SearchField: NSSearchField created - \(searchField)")
         return searchField
     }
     
@@ -40,11 +42,21 @@ struct SearchField: NSViewRepresentable {
         
         init(text: Binding<String>) {
             _text = text
+            print("SearchField.Coordinator: initialized")
         }
         
         func controlTextDidChange(_ obj: Notification) {
             guard let field = obj.object as? NSSearchField else { return }
+            print("SearchField: text changed to '\(field.stringValue)'")
             self.text = field.stringValue
+        }
+        
+        func controlTextDidBeginEditing(_ obj: Notification) {
+            print("SearchField: began editing")
+        }
+        
+        func controlTextDidEndEditing(_ obj: Notification) {
+            print("SearchField: ended editing")
         }
     }
 }
