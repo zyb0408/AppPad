@@ -63,16 +63,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         
         self.mainWindow = window
+        
+        // Register global hotkey (Option + Space)
+        GlobalHotkeyManager.shared.registerDefaultHotkey { [weak self] in
+            Task { @MainActor in
+                self?.toggleWindow()
+            }
+        }
     }
     
     @MainActor
     func toggleWindow() {
         guard let window = mainWindow else { return }
-        if window.isVisible {
-            window.orderOut(nil)
-        } else {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        WindowAnimationManager.shared.toggleWindow(window)
     }
 }

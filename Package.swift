@@ -19,7 +19,9 @@ let package = Package(
             sources: nil, // Automatically picks up .swift files
             resources: [],
             linkerSettings: [
-                .linkedFramework("AppKit")
+                .linkedFramework("AppKit"),
+                .linkedFramework("Carbon"),
+                .linkedFramework("SwiftData")
             ]
         )
     ]

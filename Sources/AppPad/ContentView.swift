@@ -5,6 +5,16 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
+            // Background tap to close
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Click background to hide with animation
+                    if let window = NSApp.keyWindow {
+                        WindowAnimationManager.shared.hideWindow(window)
+                    }
+                }
+            
             // 1. Ultra Thin Material Background
             // This relies on the window behind it being transparent to show the desktop through,
             // but effectively 'regular' material in SwiftUI creates a blur effect.
@@ -14,6 +24,7 @@ struct ContentView: View {
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
+                .allowsHitTesting(false)
             
             // 2. Icon Grid & Search
             VStack(spacing: 20) {
@@ -40,6 +51,7 @@ struct ContentView: View {
                 
                 IconGridView(viewModel: viewModel)
             }
+            .allowsHitTesting(true)
         }
         .onAppear {
             viewModel.loadApps()
@@ -47,15 +59,14 @@ struct ContentView: View {
             // Add Esc key monitor
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 if event.keyCode == 53 { // 53 is Esc
-                    NSApp.terminate(nil)
+                    // Hide window with animation
+                    if let window = NSApp.keyWindow {
+                        WindowAnimationManager.shared.hideWindow(window)
+                    }
                     return nil
                 }
                 return event
             }
-        }
-        .onTapGesture {
-            // Click outside grid to close
-            NSApp.terminate(nil)
         }
     }
 }
