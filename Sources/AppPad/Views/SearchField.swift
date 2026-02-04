@@ -9,14 +9,21 @@ struct SearchField: NSViewRepresentable {
         let searchField = NSSearchField()
         searchField.delegate = context.coordinator
         searchField.placeholderString = placeholder
-        searchField.focusRingType = .none // Match the clean look
-        searchField.isBordered = false // We provide our own background in SwiftUI
+        searchField.focusRingType = .none
+        searchField.isBordered = false
         searchField.drawsBackground = false
         
-        // Customize text color (Light gray/White for dark background)
+        // Customize text color
         if let cell = searchField.cell as? NSSearchFieldCell {
-             cell.textColor = .white
+            cell.textColor = .white
+            cell.placeholderAttributedString = NSAttributedString(
+                string: placeholder,
+                attributes: [.foregroundColor: NSColor.white.withAlphaComponent(0.5)]
+            )
         }
+        
+        // Make it accept first responder
+        searchField.refusesFirstResponder = false
         
         return searchField
     }
@@ -24,6 +31,14 @@ struct SearchField: NSViewRepresentable {
     func updateNSView(_ nsView: NSSearchField, context: Context) {
         if nsView.stringValue != text {
             nsView.stringValue = text
+        }
+        
+        // Auto-focus when window becomes key
+        if !context.coordinator.hasFocused {
+            DispatchQueue.main.async {
+                nsView.window?.makeFirstResponder(nsView)
+                context.coordinator.hasFocused = true
+            }
         }
     }
     
@@ -33,6 +48,7 @@ struct SearchField: NSViewRepresentable {
     
     class Coordinator: NSObject, NSSearchFieldDelegate {
         @Binding var text: String
+        var hasFocused = false
         
         init(text: Binding<String>) {
             _text = text
@@ -41,6 +57,10 @@ struct SearchField: NSViewRepresentable {
         func controlTextDidChange(_ obj: Notification) {
             guard let field = obj.object as? NSSearchField else { return }
             self.text = field.stringValue
+        }
+        
+        func controlTextDidBeginEditing(_ obj: Notification) {
+            hasFocused = true
         }
     }
 }

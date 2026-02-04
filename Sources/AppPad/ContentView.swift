@@ -18,7 +18,7 @@ struct ContentView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.white.opacity(0.8))
                         
-                        SearchField(text: $viewModel.searchText, placeholder: "Search Apps")
+                        SearchField(text: $viewModel.searchText, placeholder: "搜索应用")
                             .frame(height: 22)
                     }
                     .padding(.horizontal, 16)

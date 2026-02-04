@@ -23,9 +23,19 @@ actor AppScanner {
                 guard let bundle = Bundle(path: fullPath),
                       let bundleId = bundle.bundleIdentifier else { continue }
                 
-                // Get Display Name
+                // Get Display Name with localization support
                 let info = bundle.infoDictionary
-                let name = (info?["CFBundleDisplayName"] as? String) ??
+                let localizedInfo = bundle.localizedInfoDictionary
+                
+                // Priority: 
+                // 1. Localized CFBundleDisplayName (for Chinese names)
+                // 2. CFBundleDisplayName
+                // 3. Localized CFBundleName
+                // 4. CFBundleName
+                // 5. File name
+                let name = (localizedInfo?["CFBundleDisplayName"] as? String) ??
+                           (info?["CFBundleDisplayName"] as? String) ??
+                           (localizedInfo?["CFBundleName"] as? String) ??
                            (info?["CFBundleName"] as? String) ??
                            (item as NSString).deletingPathExtension
                 

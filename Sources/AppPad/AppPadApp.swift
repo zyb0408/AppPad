@@ -14,24 +14,17 @@ struct AppPadApp: App {
         
         // Menu Bar Icon
         MenuBarExtra("AppPad", systemImage: "square.grid.3x3.fill") {
-            Button("Toggle AppPad") {
+            Button("打开 AppPad") {
                 appDelegate.toggleWindow()
             }
             Divider()
             
-            // Standard Settings Link
-            if #available(macOS 14.0, *) {
-                 SettingsLink {
-                     Text("Settings...")
-                 }
-            } else {
-                Button("Settings...") {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }
+            Button("设置...") {
+                appDelegate.openSettings()
             }
             
             Divider()
-            Button("Quit") {
+            Button("退出") {
                 NSApp.terminate(nil)
             }
         }
@@ -40,6 +33,7 @@ struct AppPadApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var mainWindow: MainWindow?
+    var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the window
@@ -77,7 +71,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @MainActor
     func openSettings() {
-        // Open settings window
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController()
+        }
+        settingsWindowController?.showWindow(nil)
     }
 }

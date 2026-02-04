@@ -12,12 +12,12 @@ struct SettingsView: View {
     
     var body: some View {
         TabView {
-            // Appearance Tab
+            // 外观标签页
             Form {
-                Section(header: Text("Icon Display")) {
+                Section(header: Text("图标显示")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Icon Size")
+                            Text("图标大小")
                             Spacer()
                             Text("\(Int(iconSize))px")
                                 .foregroundColor(.secondary)
@@ -26,19 +26,19 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section(header: Text("Grid Layout")) {
-                    Stepper("Columns: \(gridColumns)", value: $gridColumns, in: 4...12)
-                    Stepper("Rows: \(gridRows)", value: $gridRows, in: 3...10)
+                Section(header: Text("网格布局")) {
+                    Stepper("列数：\(gridColumns)", value: $gridColumns, in: 4...12)
+                    Stepper("行数：\(gridRows)", value: $gridRows, in: 3...10)
                     
-                    Text("Apps per page: \(gridColumns * gridRows)")
+                    Text("每页应用数：\(gridColumns * gridRows)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
-                Section(header: Text("Visual Effects")) {
+                Section(header: Text("视觉效果")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Background Blur")
+                            Text("背景模糊")
                             Spacer()
                             Text("\(Int(backgroundBlurIntensity * 100))%")
                                 .foregroundColor(.secondary)
@@ -49,93 +49,93 @@ struct SettingsView: View {
             }
             .padding()
             .tabItem {
-                Label("Appearance", systemImage: "paintbrush")
+                Label("外观", systemImage: "paintbrush")
             }
             
-            // Behavior Tab
+            // 行为标签页
             Form {
-                Section(header: Text("Gestures")) {
+                Section(header: Text("手势")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Swipe Cooldown")
+                            Text("滑动冷却时间")
                             Spacer()
-                            Text("\(String(format: "%.1f", gestureSensitivity))s")
+                            Text("\(String(format: "%.1f", gestureSensitivity))秒")
                                 .foregroundColor(.secondary)
                         }
                         Slider(value: $gestureSensitivity, in: 0.1...1.5, step: 0.1)
                     }
                     
-                    Text("Minimum time between page flips")
+                    Text("翻页之间的最小时间间隔")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
-                Section(header: Text("Animations")) {
+                Section(header: Text("动画")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Animation Speed")
+                            Text("动画速度")
                             Spacer()
-                            Text("\(String(format: "%.1f", animationSpeed))s")
+                            Text("\(String(format: "%.1f", animationSpeed))秒")
                                 .foregroundColor(.secondary)
                         }
                         Slider(value: $animationSpeed, in: 0.1...1.0, step: 0.1)
                     }
                     
-                    Text("Duration for open/close animations")
+                    Text("打开/关闭动画的持续时间")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
-                Section(header: Text("Shortcuts")) {
-                    Toggle("Enable Global Shortcut", isOn: $globalShortcutEnabled)
+                Section(header: Text("快捷键")) {
+                    Toggle("启用全局快捷键", isOn: $globalShortcutEnabled)
                     
                     HStack {
-                        Text("Hotkey")
+                        Text("热键")
                         Spacer()
-                        Text("⌥ Space")
+                        Text("⌥ 空格")
                             .font(.system(.body, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
                     
-                    Text("Press Option + Space to toggle AppPad")
+                    Text("按 Option + 空格 切换 AppPad")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
             .padding()
             .tabItem {
-                Label("Behavior", systemImage: "hand.tap")
+                Label("行为", systemImage: "hand.tap")
             }
             
-            // General Tab
+            // 通用标签页
             Form {
-                Section(header: Text("Startup")) {
-                    Toggle("Launch at Login", isOn: $launchAtLogin)
+                Section(header: Text("启动")) {
+                    Toggle("登录时启动", isOn: $launchAtLogin)
                 }
                 
-                Section(header: Text("About")) {
+                Section(header: Text("关于")) {
                     HStack {
-                        Text("Version")
+                        Text("版本")
                         Spacer()
                         Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
                     
                     HStack {
-                        Text("Build")
+                        Text("构建")
                         Spacer()
                         Text("2026.02.04")
                             .foregroundColor(.secondary)
                     }
                     
-                    Text("A macOS Launchpad alternative with enhanced customization.")
+                    Text("一个具有增强自定义功能的 macOS Launchpad 替代品。")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.top, 4)
                 }
                 
                 Section {
-                    Button("Reset to Defaults") {
+                    Button("恢复默认设置") {
                         resetToDefaults()
                     }
                     .foregroundColor(.red)
@@ -143,7 +143,7 @@ struct SettingsView: View {
             }
             .padding()
             .tabItem {
-                Label("General", systemImage: "gear")
+                Label("通用", systemImage: "gear")
             }
         }
         .frame(width: 500, height: 400)
