@@ -8,14 +8,32 @@ struct AppPadApp: App {
     
     var body: some Scene {
         // We use Settings because we are managing the main window manually via NSWindowController/AppDelegate
-        // or we can use WindowGroup but hide it/configure it.
-        // However, to get EXACTLY the level and behavior requested cleanly, 
-        // a pure NSWindow/NSApplicationDelegate approach is often more robust for 'System UI' like apps.
-        // But to stick to SwiftUI lifecycle, we can try to use WindowGroup and then introspect,
-        // OR just rely on the AppDelegate to spawn the window.
-        
         Settings {
-            EmptyView()
+            SettingsView()
+        }
+        
+        // Menu Bar Icon
+        MenuBarExtra("AppPad", systemImage: "square.grid.3x3.fill") {
+            Button("Toggle AppPad") {
+                appDelegate.toggleWindow()
+            }
+            Divider()
+            
+            // Standard Settings Link
+            if #available(macOS 14.0, *) {
+                 SettingsLink {
+                     Text("Settings...")
+                 }
+            } else {
+                Button("Settings...") {
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                }
+            }
+            
+            Divider()
+            Button("Quit") {
+                NSApp.terminate(nil)
+            }
         }
     }
 }
@@ -45,5 +63,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         
         self.mainWindow = window
+    }
+    
+    @MainActor
+    func toggleWindow() {
+        guard let window = mainWindow else { return }
+        if window.isVisible {
+            window.orderOut(nil)
+        } else {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 }

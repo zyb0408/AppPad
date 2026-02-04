@@ -4,24 +4,68 @@ import AppKit
 struct IconGridView: View {
     @ObservedObject var viewModel: AppListViewModel
     
-    let columns = [
-        GridItem(.adaptive(minimum: 100, maximum: 120), spacing: 40)
-    ]
+    // Dynamic settings from AppStorage (matching SettingsView)
+    @AppStorage("iconSize") private var iconSize: Double = 80.0
+    @AppStorage("gridColumns") private var gridColumns: Int = 7
+    @AppStorage("gridRows") private var gridRows: Int = 5
+    
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.fixed(iconSize), spacing: 40), count: gridColumns)
+    }
+    
+    private var appsPerPage: Int {
+        gridColumns * gridRows
+    }
+    
+    // Helper to chunk the apps array into pages
+    private var pages: [[AppIcon]] {
+        viewModel.apps.chunked(into: appsPerPage)
+    }
+    
+    @State private var currentPage = 0
     
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 40) {
-                ForEach(viewModel.apps) { icon in
-                    AppIconView(icon: icon)
+        VStack {
+            TabView(selection: $currentPage) {
+                ForEach(0..<pages.count, id: \.self) { pageIndex in
+                    LazyVGrid(columns: columns, spacing: 40) {
+                        ForEach(pages[pageIndex]) { icon in
+                            AppIconView(icon: icon, size: iconSize)
+                        }
+                    }
+                    .padding(60)
+                    .tag(pageIndex)
                 }
             }
-            .padding(60)
+            .tabViewStyle(.automatic) // .page doesn't exist on macOS, we use automatic which is usually Tabs, but we can hide tabs or implement custom switcher if needed.
+            // On macOS, basic TabView usually shows tabs on top. To mimic Launchpad, we might need a custom pager.
+            // Let's stick to a simple TabView for now and see if we can hide tabs, OR build a custom view switcher.
+            // Actually, for "Launchpad" look, a horizontal ScrollView with paging is often better, or just standard TabView with tabs hidden.
+            // Let's try standard TabView but we might get tabs on top.
+            
+            // Allow swiping/paging via indicators
+            if pages.count > 1 {
+                HStack(spacing: 8) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        Circle()
+                            .fill(currentPage == index ? Color.white : Color.white.opacity(0.3))
+                            .frame(width: 8, height: 8)
+                            .onTapGesture {
+                                withAnimation {
+                                    currentPage = index
+                                }
+                            }
+                    }
+                }
+                .padding(.bottom, 20)
+            }
         }
     }
 }
 
 struct AppIconView: View {
     let icon: AppIcon
+    let size: Double
     @State private var iconImage: NSImage?
     
     var body: some View {
@@ -37,7 +81,7 @@ struct AppIconView: View {
                         .fill(Color.gray.opacity(0.3))
                 }
             }
-            .frame(width: 80, height: 80)
+            .frame(width: size, height: size)
             .shadow(radius: 5)
             .onAppear {
                 loadIcon()
@@ -50,7 +94,7 @@ struct AppIconView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
-        .frame(width: 100, height: 120)
+        .frame(width: size + 20, height: size + 40)
     }
     
     private func loadIcon() {
@@ -64,9 +108,17 @@ struct AppIconView: View {
     }
 }
 
+// Helper extension for chunking
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
+        }
+    }
+}
+
 #Preview {
     ZStack {
-        // Preview background to see the white text
         Color.black
         IconGridView(viewModel: AppListViewModel())
     }
