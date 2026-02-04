@@ -21,10 +21,17 @@ struct ContentView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.white.opacity(0.8))
-                    TextField("Search Apps", text: $viewModel.searchText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundColor(.white)
+                    
+                    ZStack(alignment: .leading) {
+                        if viewModel.searchText.isEmpty {
+                            Text("Search Apps")
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        TextField("", text: $viewModel.searchText)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(.white)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)

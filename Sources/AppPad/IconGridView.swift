@@ -8,6 +8,7 @@ struct IconGridView: View {
     @AppStorage("iconSize") private var iconSize: Double = 80.0
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
+    @AppStorage("gestureSensitivity") private var gestureSensitivity: Double = 0.5
     
     private var columns: [GridItem] {
         Array(repeating: GridItem(.fixed(iconSize), spacing: 40), count: gridColumns)
@@ -23,19 +24,28 @@ struct IconGridView: View {
     }
     
     @State private var currentPage = 0
+    @State private var lastGestureTime: Date = Date.distantPast
     
     var body: some View {
         ZStack {
             // Gesture Layer: Fills the entire view to capture swipes
             PageGestureView(
                 onSwipeLeft: {
-                    if currentPage > 0 {
-                        withAnimation(.easeOut(duration: 0.3)) { currentPage -= 1 }
+                    let now = Date()
+                    if now.timeIntervalSince(lastGestureTime) > gestureSensitivity {
+                        if currentPage > 0 {
+                            withAnimation(.easeOut(duration: 0.3)) { currentPage -= 1 }
+                        }
+                        lastGestureTime = now
                     }
                 },
                 onSwipeRight: {
-                    if currentPage < pages.count - 1 {
-                        withAnimation(.easeOut(duration: 0.3)) { currentPage += 1 }
+                    let now = Date()
+                    if now.timeIntervalSince(lastGestureTime) > gestureSensitivity {
+                        if currentPage < pages.count - 1 {
+                            withAnimation(.easeOut(duration: 0.3)) { currentPage += 1 }
+                        }
+                        lastGestureTime = now
                     }
                 }
             )
@@ -48,6 +58,9 @@ struct IconGridView: View {
                             LazyVGrid(columns: columns, spacing: 40) {
                                 ForEach(pages[pageIndex]) { icon in
                                     AppIconView(icon: icon, size: iconSize)
+                                        .onTapGesture {
+                                            launchApp(icon)
+                                        }
                                 }
                             }
                             .padding(60)
@@ -75,6 +88,13 @@ struct IconGridView: View {
                 }
             }
         }
+    }
+    
+    private func launchApp(_ icon: AppIcon) {
+        let url = URL(fileURLWithPath: icon.iconPath)
+        NSWorkspace.shared.open(url)
+        // Hide the window after launching
+        NSApp.hide(nil)
     }
 }
 

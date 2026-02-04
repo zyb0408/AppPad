@@ -4,6 +4,7 @@ struct SettingsView: View {
     @AppStorage("iconSize") private var iconSize: Double = 80.0
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
+    @AppStorage("gestureSensitivity") private var gestureSensitivity: Double = 0.5 // 0.1 (Fast) to 1.0 (Slow/Debounced)
     
     var body: some View {
         Form {
@@ -12,6 +13,15 @@ struct SettingsView: View {
                     Text("Icon Size")
                 }
                 Text("Current Size: \(Int(iconSize))px")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Section(header: Text("Interaction")) {
+                Slider(value: $gestureSensitivity, in: 0.1...1.5, step: 0.1) {
+                    Text("Swipe Cooldown (s)")
+                }
+                Text("Minimum time between page flips: \(String(format: "%.1f", gestureSensitivity))s")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
