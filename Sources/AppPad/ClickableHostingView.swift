@@ -66,7 +66,7 @@ class ClickableHostingView<Content: View>: NSHostingView<Content> {
                hitViewType.contains("_NSView") ||
                hitViewType.contains("PlatformView") ||
                hitViewType.contains("ViewHost") ||
-               hitViewType.contains("EventView") ||  // PageGestureView's EventView
+               hitViewType.contains("EventView") ||  // PageGestureView's EventView passes clicks through
                hitViewType.contains("PlatformViewRepresentable") {
                 print("✅ Container view click - treating as background")
                 onBackgroundClick?()

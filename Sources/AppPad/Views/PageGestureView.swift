@@ -25,7 +25,15 @@ struct PageGestureView: NSViewRepresentable {
         private var hasTriggered = false
         private var isGestureActive = false
         
-        override var acceptsFirstResponder: Bool { true }
+        override var acceptsFirstResponder: Bool { 
+            return true  // Need this to receive scroll events
+        }
+        
+        override func mouseDown(with event: NSEvent) {
+            // Don't handle mouse clicks - pass them up
+            // This allows clicks to reach the ClickableHostingView
+            self.nextResponder?.mouseDown(with: event)
+        }
         
         override func scrollWheel(with event: NSEvent) {
             // Reset on gesture begin
@@ -36,7 +44,10 @@ struct PageGestureView: NSViewRepresentable {
             }
             
             // Only process if gesture is active
-            guard isGestureActive else { return }
+            guard isGestureActive else { 
+                super.scrollWheel(with: event)
+                return 
+            }
             
             // Don't accumulate if already triggered
             guard !hasTriggered else {
