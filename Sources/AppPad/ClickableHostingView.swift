@@ -40,6 +40,22 @@ class ClickableHostingView<Content: View>: NSHostingView<Content> {
         print("Click location in window: \(locationInWindow)")
         print("Click location in view: \(locationInView)")
         
+        // Check if a search field or text field is currently focused
+        if let firstResponder = window?.firstResponder {
+            let responderType = String(describing: type(of: firstResponder))
+            print("Current firstResponder: \(responderType)")
+            
+            if firstResponder is NSSearchField || 
+               firstResponder is NSTextField ||
+               firstResponder is NSText ||
+               responderType.contains("SearchField") ||
+               responderType.contains("TextField") {
+                print("✅ Search field is focused - passing event to super")
+                super.mouseDown(with: event)
+                return
+            }
+        }
+        
         // Perform hit test to find the actual target
         if let hitView = hitTest(locationInView) {
             let hitViewType = String(describing: type(of: hitView))

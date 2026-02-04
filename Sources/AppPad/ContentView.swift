@@ -13,17 +13,27 @@ struct ContentView: View {
                 
                 // Content layer
                 VStack(spacing: 0) {
-                    // Search Bar - with larger clickable area
+                    // Search Bar - with larger clickable area and visible border
                     VStack {
+                        Text("⬇️ 点击这里搜索 ⬇️")
+                            .foregroundColor(.white)
+                            .font(.caption)
+                        
                         SearchField(text: $viewModel.searchText, placeholder: "搜索应用")
-                            .frame(width: 400, height: 32)
+                            .frame(width: 500, height: 40)
                     }
-                    .frame(height: 120)  // Fixed height for search area
+                    .frame(height: 140)  // Fixed height for search area
                     .frame(maxWidth: .infinity)
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.blue.opacity(0.5))  // Blue background to make it obvious
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(Color.white, lineWidth: 3)  // White border
+                            )
+                    )
                     .padding(.horizontal, 100)
-                    .padding(.top, 60)
+                    .padding(.top, 40)
                     
                     // Icon Grid - constrained to remaining space
                     IconGridView(viewModel: viewModel)
