@@ -7,11 +7,6 @@ struct AppPadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
-        // We use Settings because we are managing the main window manually via NSWindowController/AppDelegate
-        Settings {
-            SettingsView()
-        }
-        
         // Menu Bar Icon
         MenuBarExtra("AppPad", systemImage: "square.grid.3x3.fill") {
             Button("打开 AppPad") {
