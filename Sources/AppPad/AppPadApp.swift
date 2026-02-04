@@ -47,8 +47,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         
-        // Host SwiftUI content
-        window.contentView = NSHostingView(rootView: ContentView())
+        // Host SwiftUI content with custom hosting view
+        let hostingView = ClickableHostingView(rootView: ContentView())
+        hostingView.onBackgroundClick = { [weak self] in
+            Task { @MainActor in
+                self?.toggleWindow()
+            }
+        }
+        window.contentView = hostingView
         
         // Don't show window initially - wait for user to trigger it
         // window.makeKeyAndOrderFront(nil)

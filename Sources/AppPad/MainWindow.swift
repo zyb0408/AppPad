@@ -39,26 +39,4 @@ class MainWindow: NSWindow {
     override var canBecomeMain: Bool {
         return true
     }
-    
-    override func mouseDown(with event: NSEvent) {
-        // Get the click location in window coordinates
-        let locationInWindow = event.locationInWindow
-        
-        // Check if click hit any subview
-        if let contentView = self.contentView {
-            let hitView = contentView.hitTest(locationInWindow)
-            
-            // If hit view is the content view itself (background), close the window
-            // Otherwise, let the event pass through to the subview
-            if hitView == contentView || hitView == nil {
-                Task { @MainActor in
-                    WindowAnimationManager.shared.hideWindow(self)
-                }
-            } else {
-                // Check if the hit view is a search field or button
-                // If so, don't close the window
-                super.mouseDown(with: event)
-            }
-        }
-    }
 }
