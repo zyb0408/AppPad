@@ -23,6 +23,7 @@ struct PageGestureView: NSViewRepresentable {
         
         private var accumulatedDeltaX: CGFloat = 0
         private var hasTriggered = false
+        private var isGestureActive = false
         
         override var acceptsFirstResponder: Bool { true }
         
@@ -31,13 +32,18 @@ struct PageGestureView: NSViewRepresentable {
             if event.phase == .began {
                 accumulatedDeltaX = 0
                 hasTriggered = false
+                isGestureActive = true
             }
+            
+            // Only process if gesture is active
+            guard isGestureActive else { return }
             
             // Don't accumulate if already triggered
             guard !hasTriggered else {
                 if event.phase == .ended || event.phase == .cancelled {
                     accumulatedDeltaX = 0
                     hasTriggered = false
+                    isGestureActive = false
                 }
                 return
             }
@@ -45,7 +51,8 @@ struct PageGestureView: NSViewRepresentable {
             // Accumulate delta
             accumulatedDeltaX += event.scrollingDeltaX
             
-            let threshold: CGFloat = 50.0 // Increased threshold for more deliberate swipes
+            // Lower threshold for more responsive swipes
+            let threshold: CGFloat = 30.0
             
             if accumulatedDeltaX < -threshold {
                 // Swipe Left -> Next Page
@@ -63,6 +70,7 @@ struct PageGestureView: NSViewRepresentable {
             if event.phase == .ended || event.phase == .cancelled {
                 accumulatedDeltaX = 0
                 hasTriggered = false
+                isGestureActive = false
             }
         }
     }

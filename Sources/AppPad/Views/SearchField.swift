@@ -25,6 +25,9 @@ struct SearchField: NSViewRepresentable {
         // Make it accept first responder
         searchField.refusesFirstResponder = false
         
+        // Store reference in coordinator
+        context.coordinator.searchField = searchField
+        
         return searchField
     }
     
@@ -33,11 +36,18 @@ struct SearchField: NSViewRepresentable {
             nsView.stringValue = text
         }
         
-        // Auto-focus when window becomes key
-        if !context.coordinator.hasFocused {
-            DispatchQueue.main.async {
-                nsView.window?.makeFirstResponder(nsView)
-                context.coordinator.hasFocused = true
+        // Try to focus on first update
+        if !context.coordinator.didAttemptFocus {
+            context.coordinator.didAttemptFocus = true
+            
+            // Use multiple strategies to ensure focus
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let window = nsView.window {
+                    window.makeFirstResponder(nsView)
+                    
+                    // Also try to activate the window
+                    window.makeKeyAndOrderFront(nil)
+                }
             }
         }
     }
@@ -48,7 +58,8 @@ struct SearchField: NSViewRepresentable {
     
     class Coordinator: NSObject, NSSearchFieldDelegate {
         @Binding var text: String
-        var hasFocused = false
+        var didAttemptFocus = false
+        weak var searchField: NSSearchField?
         
         init(text: Binding<String>) {
             _text = text
@@ -60,7 +71,11 @@ struct SearchField: NSViewRepresentable {
         }
         
         func controlTextDidBeginEditing(_ obj: Notification) {
-            hasFocused = true
+            // User started editing
+        }
+        
+        func controlTextDidEndEditing(_ obj: Notification) {
+            // User finished editing
         }
     }
 }
