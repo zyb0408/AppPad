@@ -51,6 +51,43 @@ mkdir -p "${APP_PATH}/Contents/Resources"
 # 复制二进制
 cp "$BINARY_PATH" "${APP_PATH}/Contents/MacOS/${EXECUTABLE_NAME}"
 
+# 生成应用图标 (.icns)
+ICON_SOURCE="Sources/AppPad/Resources/Assets.xcassets/AppIcon.appiconset"
+ICONSET_DIR="${BUILD_DIR}/AppIcon.iconset"
+ICNS_FILE="${APP_PATH}/Contents/Resources/AppIcon.icns"
+
+if [ -d "$ICON_SOURCE" ]; then
+    echo -e "${YELLOW}正在生成应用图标...${NC}"
+    mkdir -p "$ICONSET_DIR"
+    
+    # 复制并重命名图标文件为 iconutil 需要的格式
+    cp "${ICON_SOURCE}/icon_16x16.png" "${ICONSET_DIR}/icon_16x16.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_16x16@2x.png" "${ICONSET_DIR}/icon_16x16@2x.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_32x32.png" "${ICONSET_DIR}/icon_32x32.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_32x32@2x.png" "${ICONSET_DIR}/icon_32x32@2x.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_128x128.png" "${ICONSET_DIR}/icon_128x128.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_128x128@2x.png" "${ICONSET_DIR}/icon_128x128@2x.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_256x256.png" "${ICONSET_DIR}/icon_256x256.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_256x256@2x.png" "${ICONSET_DIR}/icon_256x256@2x.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_512x512.png" "${ICONSET_DIR}/icon_512x512.png" 2>/dev/null
+    cp "${ICON_SOURCE}/icon_512x512@2x.png" "${ICONSET_DIR}/icon_512x512@2x.png" 2>/dev/null
+    
+    # 使用 iconutil 生成 .icns 文件
+    iconutil -c icns "$ICONSET_DIR" -o "$ICNS_FILE" 2>/dev/null
+    
+    if [ -f "$ICNS_FILE" ]; then
+        echo -e "${GREEN}应用图标生成成功${NC}"
+        ICON_PLIST_ENTRY="    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>"
+    else
+        echo -e "${YELLOW}警告: 图标生成失败，将使用默认图标${NC}"
+        ICON_PLIST_ENTRY=""
+    fi
+else
+    echo -e "${YELLOW}警告: 未找到图标资源目录，将使用默认图标${NC}"
+    ICON_PLIST_ENTRY=""
+fi
+
 # 创建 Info.plist
 cat > "${APP_PATH}/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -72,7 +109,8 @@ cat > "${APP_PATH}/Contents/Info.plist" <<EOF
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSUIElement</key>
-    <true/> 
+    <true/>
+${ICON_PLIST_ENTRY}
 </dict>
 </plist>
 EOF
