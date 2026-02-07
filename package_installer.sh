@@ -34,7 +34,7 @@ echo -e "${YELLOW}[2/7] 编译 Release 版本...${NC}"
 swift build -c release --arch arm64 --arch x86_64 || { echo -e "${RED}编译失败${NC}"; exit 1; }
 
 # 获取编译产物路径 (排除 dSYM)
-BINARY_PATH=$(find .build -name "$EXECUTABLE_NAME" -type f -not -path "*.dSYM*" | grep "release" | head -n 1)
+BINARY_PATH=$(find .build -name "$EXECUTABLE_NAME" -type f -not -path "*.dSYM*" | grep -i "release" | head -n 1)
 
 if [ -z "$BINARY_PATH" ]; then
     echo -e "${RED}错误: 未找到编译后的二进制文件${NC}"
