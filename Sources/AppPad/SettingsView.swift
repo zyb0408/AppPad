@@ -5,13 +5,13 @@ struct SettingsView: View {
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
     @AppStorage("gestureSensitivity") private var gestureSensitivity: Double = 0.5
-    @AppStorage("backgroundColorHex") private var backgroundColorHex: String = "#1E1E1E"
+    @AppStorage("backgroundColorHex") private var backgroundColorHex: String = "#9a6262ff"
     @AppStorage("backgroundOpacity") private var backgroundOpacity: Double = 0.85
     @AppStorage("animationSpeed") private var animationSpeed: Double = 0.3
     @AppStorage("globalShortcutEnabled") private var globalShortcutEnabled: Bool = true
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
     
-    @State private var selectedColor: Color = Color(hex: "#1E1E1E")
+    @State private var selectedColor: Color = Color(hex: "#a94040ff")
     
     private let labelWidth: CGFloat = 100
     
@@ -252,8 +252,8 @@ struct SettingsView: View {
         gridColumns = 7
         gridRows = 5
         gestureSensitivity = 0.5
-        backgroundColorHex = "#1E1E1E"
-        selectedColor = Color(hex: "#1E1E1E")
+        backgroundColorHex = "#8e5252ff"
+        selectedColor = Color(hex: "#8e5252ff")
         backgroundOpacity = 0.85
         animationSpeed = 0.3
         globalShortcutEnabled = true
