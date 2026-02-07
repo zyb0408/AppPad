@@ -4,7 +4,6 @@ import SwiftData
 struct ContentView: View {
     @StateObject private var viewModel = AppListViewModel()
     @State private var currentPage = 0
-    @FocusState private var isSearchFocused: Bool
 
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
@@ -29,13 +28,10 @@ struct ContentView: View {
                 // Main content
                 VStack(spacing: 0) {
                     // Search bar
-                    SearchBarView(
-                        text: $viewModel.searchText,
-                        isFocused: $isSearchFocused
-                    )
-                    .frame(width: 260)
-                    .padding(.top, 50)
-                    .padding(.bottom, 10)
+                    SearchBarView(text: $viewModel.searchText)
+                        .frame(width: 260)
+                        .padding(.top, 50)
+                        .padding(.bottom, 10)
 
                     // Icon Grid
                     IconGridView(viewModel: viewModel, currentPage: $currentPage)
@@ -101,7 +97,6 @@ struct ContentView: View {
                     viewModel.searchText = ""
                     viewModel.isEditMode = false
                     viewModel.closeFolder()
-                    isSearchFocused = false
                 }
             }
 
@@ -112,7 +107,7 @@ struct ContentView: View {
                 queue: .main
             ) { _ in
                 Task { @MainActor in
-                    isSearchFocused = true
+                    SearchBarView.focusSearchField()
                 }
             }
 
@@ -153,7 +148,6 @@ struct ContentView: View {
         if event.keyCode == 53 {
             if !viewModel.searchText.isEmpty {
                 viewModel.searchText = ""
-                isSearchFocused = false
                 return nil
             }
             if viewModel.openFolderId != nil {
@@ -184,10 +178,13 @@ struct ContentView: View {
                 let firstChar = chars.unicodeScalars.first!
                 if CharacterSet.alphanumerics.union(.whitespaces).contains(firstChar) ||
                    firstChar.value > 127 {
-                    if !isSearchFocused {
-                        isSearchFocused = true
+                    if !SearchBarView.isSearchFieldFocused {
+                        // Manually append the first character and schedule focus
+                        viewModel.searchText.append(chars)
+                        SearchBarView.focusSearchField()
+                        return nil // Consume: we handled it manually
                     }
-                    return event
+                    return event // Already focused, let AppKit handle it
                 }
             }
         }

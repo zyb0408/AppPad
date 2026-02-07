@@ -17,16 +17,18 @@ struct FolderExpandedView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Editable folder name
-            TextField("文件夹名称", text: $folderName)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 20)
-                .onChange(of: folderName) { _, newValue in
-                    viewModel.renameFolder(folderId: folder.id, name: newValue)
-                }
+            // Editable folder name (AppKit NSTextField for borderless window support)
+            AppKitTextField(
+                text: $folderName,
+                placeholder: "文件夹名称",
+                font: .boldSystemFont(ofSize: 22),
+                alignment: .center
+            )
+            .frame(height: 28)
+            .padding(.horizontal, 20)
+            .onChange(of: folderName) { _, newValue in
+                viewModel.renameFolder(folderId: folder.id, name: newValue)
+            }
 
             Divider()
                 .background(Color.white.opacity(0.2))
