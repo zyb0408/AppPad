@@ -39,6 +39,7 @@ final class WindowAnimationManager: @unchecked Sendable {
             window.animator().alphaValue = 1.0
         }, completionHandler: {
             Task { @MainActor in
+                NotificationCenter.default.post(name: .appPadWindowDidShow, object: nil)
                 completion?()
             }
         })

@@ -4,6 +4,7 @@ import SwiftData
 struct ContentView: View {
     @StateObject private var viewModel = AppListViewModel()
     @State private var currentPage = 0
+    @FocusState private var isSearchFocused: Bool
 
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
@@ -28,11 +29,11 @@ struct ContentView: View {
                 // Main content
                 VStack(spacing: 0) {
                     // Search bar
-                    SearchField(
+                    SearchBarView(
                         text: $viewModel.searchText,
-                        placeholder: "搜索"
+                        isFocused: $isSearchFocused
                     )
-                    .frame(width: 260, height: 28)
+                    .frame(width: 260)
                     .padding(.top, 50)
                     .padding(.bottom, 10)
 
@@ -100,6 +101,18 @@ struct ContentView: View {
                     viewModel.searchText = ""
                     viewModel.isEditMode = false
                     viewModel.closeFolder()
+                    isSearchFocused = false
+                }
+            }
+
+            // Window show notification - auto-focus search
+            NotificationCenter.default.addObserver(
+                forName: .appPadWindowDidShow,
+                object: nil,
+                queue: .main
+            ) { _ in
+                Task { @MainActor in
+                    isSearchFocused = true
                 }
             }
 
@@ -140,6 +153,7 @@ struct ContentView: View {
         if event.keyCode == 53 {
             if !viewModel.searchText.isEmpty {
                 viewModel.searchText = ""
+                isSearchFocused = false
                 return nil
             }
             if viewModel.openFolderId != nil {
@@ -162,7 +176,7 @@ struct ContentView: View {
             return nil
         }
 
-        // Type-anywhere: forward printable characters to search field
+        // Type-anywhere: auto-focus search field on printable characters
         if let chars = event.characters, !chars.isEmpty {
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
                 .subtracting([.shift, .capsLock])
@@ -170,11 +184,10 @@ struct ContentView: View {
                 let firstChar = chars.unicodeScalars.first!
                 if CharacterSet.alphanumerics.union(.whitespaces).contains(firstChar) ||
                    firstChar.value > 127 {
-                    // Directly focus the search field before returning the event
-                    if !SearchField.isFocused {
-                        SearchField.focus()
+                    if !isSearchFocused {
+                        isSearchFocused = true
                     }
-                    return event // Let the event propagate to the now-focused field
+                    return event
                 }
             }
         }
