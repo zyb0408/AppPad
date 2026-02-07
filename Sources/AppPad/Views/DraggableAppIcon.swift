@@ -14,6 +14,7 @@ struct DraggableAppIcon: View {
     @State private var isDragging = false
     @State private var showFolderHint = false
     @State private var hoverTimer: DispatchWorkItem?
+    @State private var isShaking = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -53,8 +54,7 @@ struct DraggableAppIcon: View {
                     .offset(x: 8, y: -8)
                 }
             }
-            .rotationEffect(isEditMode ? shakeAngle() : .degrees(0))
-            .animation(isEditMode ? shakeAnimation() : .default, value: isEditMode)
+            .rotationEffect(.degrees(isShaking ? -2 : 2))
             .scaleEffect(isDragging ? 1.2 : (isHovering ? 1.05 : 1.0))
             .opacity(isDragging ? 0.5 : 1.0)
             .onAppear {
@@ -97,6 +97,28 @@ struct DraggableAppIcon: View {
                 isDragging = false
             }
         ))
+        .onChange(of: isEditMode) { _, newValue in
+            if newValue {
+                startShaking()
+            } else {
+                stopShaking()
+            }
+        }
+    }
+
+    private func startShaking() {
+        withAnimation(
+            .easeInOut(duration: 0.12)
+            .repeatForever(autoreverses: true)
+        ) {
+            isShaking = true
+        }
+    }
+
+    private func stopShaking() {
+        withAnimation(.easeOut(duration: 0.1)) {
+            isShaking = false
+        }
     }
 
     private func loadIcon() {
@@ -106,16 +128,6 @@ struct DraggableAppIcon: View {
                 self.iconImage = image
             }
         }
-    }
-
-    private func shakeAngle() -> Angle {
-        let angles: [Double] = [-2, 2, -2, 2, -2]
-        return .degrees(angles.randomElement() ?? 0)
-    }
-
-    private func shakeAnimation() -> Animation {
-        Animation.easeInOut(duration: 0.1)
-            .repeatForever(autoreverses: true)
     }
 }
 
@@ -135,7 +147,6 @@ struct AppIconDropDelegate: SwiftUI.DropDelegate {
         isHovering = true
 
         if isEditMode {
-            // Start hover timer for folder creation visual
             let timer = DispatchWorkItem {
                 withAnimation(.spring(response: 0.3)) {
                     showFolderHint = true

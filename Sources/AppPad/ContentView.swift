@@ -4,7 +4,6 @@ import SwiftData
 struct ContentView: View {
     @StateObject private var viewModel = AppListViewModel()
     @State private var currentPage = 0
-    @State private var searchFieldShouldFocus = false
 
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
@@ -31,8 +30,7 @@ struct ContentView: View {
                     // Search bar
                     SearchField(
                         text: $viewModel.searchText,
-                        placeholder: "搜索",
-                        shouldFocus: $searchFieldShouldFocus
+                        placeholder: "搜索"
                     )
                     .frame(width: 260, height: 28)
                     .padding(.top, 50)
@@ -106,7 +104,7 @@ struct ContentView: View {
             }
 
             // Keyboard monitor: Esc + type-anywhere search
-            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [self] event in
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 return handleKeyEvent(event)
             }
         }
@@ -172,8 +170,11 @@ struct ContentView: View {
                 let firstChar = chars.unicodeScalars.first!
                 if CharacterSet.alphanumerics.union(.whitespaces).contains(firstChar) ||
                    firstChar.value > 127 {
-                    searchFieldShouldFocus = true
-                    return event
+                    // Directly focus the search field before returning the event
+                    if !SearchField.isFocused {
+                        SearchField.focus()
+                    }
+                    return event // Let the event propagate to the now-focused field
                 }
             }
         }

@@ -11,6 +11,7 @@ struct FolderIconView: View {
     @Binding var draggedIcon: AppIcon?
 
     @State private var isHovering = false
+    @State private var isShaking = false
 
     private var miniSize: Double {
         size * 0.24
@@ -59,8 +60,7 @@ struct FolderIconView: View {
                     .offset(x: 8, y: -8)
                 }
             }
-            .rotationEffect(isEditMode ? shakeAngle() : .degrees(0))
-            .animation(isEditMode ? shakeAnimation() : .default, value: isEditMode)
+            .rotationEffect(.degrees(isShaking ? -2 : 2))
             .contentShape(Rectangle())
             .onTapGesture {
                 if !isEditMode {
@@ -84,16 +84,20 @@ struct FolderIconView: View {
                 .truncationMode(.tail)
         }
         .frame(width: size + 20, height: size + 40)
-    }
-
-    private func shakeAngle() -> Angle {
-        let angles: [Double] = [-2, 2, -2, 2, -2]
-        return .degrees(angles.randomElement() ?? 0)
-    }
-
-    private func shakeAnimation() -> Animation {
-        Animation.easeInOut(duration: 0.1)
-            .repeatForever(autoreverses: true)
+        .onChange(of: isEditMode) { _, newValue in
+            if newValue {
+                withAnimation(
+                    .easeInOut(duration: 0.12)
+                    .repeatForever(autoreverses: true)
+                ) {
+                    isShaking = true
+                }
+            } else {
+                withAnimation(.easeOut(duration: 0.1)) {
+                    isShaking = false
+                }
+            }
+        }
     }
 }
 

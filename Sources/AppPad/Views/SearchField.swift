@@ -4,7 +4,9 @@ import AppKit
 struct SearchField: NSViewRepresentable {
     @Binding var text: String
     var placeholder: String
-    @Binding var shouldFocus: Bool
+
+    // Shared reference for direct focus from key event handler
+    static weak var currentField: NSSearchField?
 
     func makeNSView(context: Context) -> NSSearchField {
         let searchField = NSSearchField()
@@ -24,18 +26,13 @@ struct SearchField: NSViewRepresentable {
         }
 
         context.coordinator.searchField = searchField
+        SearchField.currentField = searchField
         return searchField
     }
 
     func updateNSView(_ nsView: NSSearchField, context: Context) {
         if nsView.stringValue != text {
             nsView.stringValue = text
-        }
-        if shouldFocus {
-            DispatchQueue.main.async {
-                nsView.window?.makeFirstResponder(nsView)
-                self.shouldFocus = false
-            }
         }
     }
 
@@ -56,15 +53,19 @@ struct SearchField: NSViewRepresentable {
             guard let field = obj.object as? NSSearchField else { return }
             self.text = field.stringValue
         }
+    }
 
-        func focus() {
-            guard let field = searchField else { return }
-            field.window?.makeFirstResponder(field)
-        }
+    /// Directly focus the search field (call from key event handler)
+    @MainActor
+    static func focus() {
+        guard let field = currentField else { return }
+        field.window?.makeFirstResponder(field)
+    }
 
-        func resignFocus() {
-            guard let field = searchField else { return }
-            field.window?.makeFirstResponder(nil)
-        }
+    /// Check if search field is currently first responder
+    @MainActor
+    static var isFocused: Bool {
+        guard let field = currentField else { return false }
+        return field.window?.firstResponder == field.currentEditor()
     }
 }
