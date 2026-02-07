@@ -2,9 +2,9 @@ import Foundation
 
 struct AppIcon: Identifiable, Codable, Equatable, Hashable {
     let id: UUID
-    let name: String
+    var name: String
     let bundleIdentifier: String
-    let iconPath: String
+    var iconPath: String
     var position: Int
     var folderId: UUID?
 

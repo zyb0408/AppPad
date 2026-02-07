@@ -105,13 +105,15 @@ struct ContentView: View {
                 }
             }
 
-            // Window show notification - auto-focus search
+            // Window show notification - auto-focus search and refresh app list
             NotificationCenter.default.addObserver(
                 forName: .appPadWindowDidShow,
                 object: nil,
                 queue: .main
             ) { _ in
                 Task { @MainActor in
+                    // Refresh app list to detect newly installed/removed apps
+                    viewModel.refreshApps()
                     SearchBarView.focusSearchField()
                 }
             }

@@ -133,6 +133,95 @@ class AppListViewModel: ObservableObject {
             self.isLoading = false
         }
     }
+    
+    /// Refresh app list to detect newly installed or removed apps
+    /// This preserves folder structure and app positions
+    func refreshApps() {
+        guard !isLoading else { return }
+        isLoading = true
+        
+        Task {
+            let scannedApps = await scanner.scanApplications()
+            let scannedBundleIds = Set(scannedApps.map { $0.bundleIdentifier })
+            
+            // Get all current app bundle IDs (both in root and in folders)
+            var currentBundleIds = Set(apps.map { $0.bundleIdentifier })
+            for folder in folders {
+                currentBundleIds.formUnion(folder.appIcons.map { $0.bundleIdentifier })
+            }
+            
+            // Find new apps (installed since last load)
+            let newBundleIds = scannedBundleIds.subtracting(currentBundleIds)
+            let newApps = scannedApps.filter { newBundleIds.contains($0.bundleIdentifier) }
+            
+            // Find removed apps (uninstalled since last load)
+            let removedBundleIds = currentBundleIds.subtracting(scannedBundleIds)
+            
+            var hasChanges = false
+            
+            // Add new apps to root level
+            if !newApps.isEmpty {
+                let maxPosition = (gridItems.map { $0.position }.max() ?? 0) + 1
+                for (index, var newApp) in newApps.enumerated() {
+                    newApp.position = maxPosition + index
+                    newApp.folderId = nil
+                    apps.append(newApp)
+                }
+                hasChanges = true
+                print("AppPad: Added \(newApps.count) new app(s)")
+            }
+            
+            // Remove uninstalled apps from root
+            if !removedBundleIds.isEmpty {
+                let beforeCount = apps.count
+                apps.removeAll { removedBundleIds.contains($0.bundleIdentifier) }
+                
+                // Remove from folders
+                for i in folders.indices {
+                    folders[i].appIcons.removeAll { removedBundleIds.contains($0.bundleIdentifier) }
+                }
+                
+                // Clean up empty folders
+                folders.removeAll { $0.appIcons.isEmpty }
+                
+                if apps.count != beforeCount {
+                    hasChanges = true
+                    print("AppPad: Removed \(removedBundleIds.count) uninstalled app(s)")
+                }
+            }
+            
+            // Update app icons for existing apps (in case icons changed)
+            let scannedAppMap = Dictionary(uniqueKeysWithValues: scannedApps.map { ($0.bundleIdentifier, $0) })
+            for i in apps.indices {
+                if let updated = scannedAppMap[apps[i].bundleIdentifier] {
+                    if apps[i].name != updated.name || apps[i].iconPath != updated.iconPath {
+                        apps[i].name = updated.name
+                        apps[i].iconPath = updated.iconPath
+                        hasChanges = true
+                    }
+                }
+            }
+            for i in folders.indices {
+                for j in folders[i].appIcons.indices {
+                    if let updated = scannedAppMap[folders[i].appIcons[j].bundleIdentifier] {
+                        if folders[i].appIcons[j].name != updated.name || folders[i].appIcons[j].iconPath != updated.iconPath {
+                            folders[i].appIcons[j].name = updated.name
+                            folders[i].appIcons[j].iconPath = updated.iconPath
+                            hasChanges = true
+                        }
+                    }
+                }
+            }
+            
+            if hasChanges {
+                reindexPositions()
+                rebuildGridItems()
+                saveToPersistence()
+            }
+            
+            self.isLoading = false
+        }
+    }
 
     // MARK: - Folder CRUD
 
