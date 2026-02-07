@@ -215,3 +215,78 @@ print("Debug info")
 - **Main Branch**: main
 - **Executable Name**: AppPad
 - **Build Products**: `.build/debug/AppPad` or `.build/release/AppPad`
+
+---
+
+## Known Issues and Solutions
+
+### ✅ RESOLVED: Text Input Not Working in Search and Folder Name Fields
+
+**Date**: 2026-02-07  
+**Severity**: Critical  
+**Status**: Fixed
+
+#### Problem
+- Search field could not accept keyboard input
+- Folder name editing did not work
+- Text typed would appear in terminal instead of GUI
+- Issue persisted across multiple attempted fixes
+
+#### Root Cause
+The `NSPanel` window was configured with `.fullSizeContentView` in its `styleMask`, which completely blocked text input in borderless panels.
+
+**Problematic code**:
+```swift
+// AppPadApp.swift
+let window = MainWindow(
+    contentRect: screenRect,
+    styleMask: [.borderless, .fullSizeContentView],  // ❌ This blocks text input!
+    backing: .buffered,
+    defer: false
+)
+```
+
+#### Solution
+
+**1. Remove `.fullSizeContentView` from styleMask** (AppPadApp.swift):
+```swift
+let window = MainWindow(
+    contentRect: screenRect,
+    styleMask: [.borderless],  // ✓ Just borderless
+    backing: .buffered,
+    defer: false
+)
+```
+
+**2. Add critical NSPanel properties** (MainWindow.swift):
+```swift
+override init(...) {
+    super.init(...)
+    
+    self.becomesKeyOnlyIfNeeded = false
+    self.hidesOnDeactivate = false
+    self.worksWhenModal = true          // ✓ CRITICAL for text input
+    self.isFloatingPanel = true         // ✓ Proper panel behavior
+    self.styleMask.insert(.nonactivatingPanel)  // ✓ But can become key
+    
+    // ... rest of configuration
+}
+```
+
+**3. Use SwiftUI TextField instead of NSTextField wrapper**:
+- Changed `SearchBarView` to use SwiftUI `TextField`
+- Changed `FolderExpandedView` to use SwiftUI `TextField`
+- Used `@FocusState` for focus management
+
+#### Key Learnings
+- `.fullSizeContentView` + `.borderless` + `NSPanel` = no text input
+- `worksWhenModal = true` is essential for NSPanel text input
+- SwiftUI `TextField` is more reliable than `NSViewRepresentable` wrappers in SwiftUI contexts
+- When debugging text input issues, always check window-level configuration first
+
+#### Files Modified
+- `Sources/AppPad/AppPadApp.swift` - Removed `.fullSizeContentView`
+- `Sources/AppPad/MainWindow.swift` - Added panel properties
+- `Sources/AppPad/Views/SearchField.swift` - Switched to SwiftUI TextField
+- `Sources/AppPad/Views/FolderExpandedView.swift` - Switched to SwiftUI TextField
+- `Sources/AppPad/ContentView.swift` - Updated keyboard event handling
