@@ -51,9 +51,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let screenRect = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1000, height: 800)
 
+        // CRITICAL: Use .borderless only, NOT .fullSizeContentView
+        // .fullSizeContentView can interfere with text input in NSPanel
         let window = MainWindow(
             contentRect: screenRect,
-            styleMask: [.borderless, .fullSizeContentView],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )

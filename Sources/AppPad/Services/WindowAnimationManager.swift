@@ -15,6 +15,7 @@ final class WindowAnimationManager: @unchecked Sendable {
 
         guard let screen = NSScreen.main else {
             window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
             completion?()
             return
         }
@@ -30,7 +31,11 @@ final class WindowAnimationManager: @unchecked Sendable {
 
         window.setFrame(startFrame, display: false)
         window.alphaValue = 0.0
+        
+        // CRITICAL: Make window key and activate app BEFORE animation
+        // This ensures keyboard input goes to the window, not the terminal
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
 
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.3
@@ -87,7 +92,6 @@ final class WindowAnimationManager: @unchecked Sendable {
             hideWindow(window)
         } else {
             showWindow(window)
-            NSApp.activate(ignoringOtherApps: true)
         }
     }
 }

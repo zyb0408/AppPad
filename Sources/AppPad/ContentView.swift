@@ -111,10 +111,14 @@ struct ContentView: View {
                 }
             }
 
-            // Keyboard monitor: Esc + type-anywhere search
+            // DIAGNOSTIC TEST: Temporarily disabled keyboard monitor
+            // This is to test if the monitor is preventing text input
+            // TODO: Re-enable with proper filtering
+            /*
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 return handleKeyEvent(event)
             }
+            */
         }
         .onChange(of: viewModel.searchText) { _, newValue in
             if !newValue.isEmpty {
@@ -144,6 +148,12 @@ struct ContentView: View {
     }
 
     private func handleKeyEvent(_ event: NSEvent) -> NSEvent? {
+        // CRITICAL: If any AppKitTextField is currently being edited, let it handle the event
+        // This fixes both search input and folder name editing issues
+        if AppKitTextField.isAnyTextFieldEditing {
+            return event // Let the text field handle it
+        }
+        
         // Esc key
         if event.keyCode == 53 {
             if !viewModel.searchText.isEmpty {

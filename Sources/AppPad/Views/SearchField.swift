@@ -27,6 +27,10 @@ struct AppKitTextField: NSViewRepresentable {
         textField.lineBreakMode = .byTruncatingTail
         textField.cell?.sendsActionOnEndEditing = false
         textField.appearance = NSAppearance(named: .vibrantDark)
+        
+        // Enable text editing and selection
+        textField.isEditable = true
+        textField.isSelectable = true
 
         if !placeholder.isEmpty {
             textField.placeholderAttributedString = NSAttributedString(
@@ -60,13 +64,25 @@ struct AppKitTextField: NSViewRepresentable {
                 parent.text = textField.stringValue
             }
         }
+        
+        func controlTextDidBeginEditing(_ obj: Notification) {
+            AppKitTextField.isAnyTextFieldEditing = true
+        }
+        
+        func controlTextDidEndEditing(_ obj: Notification) {
+            AppKitTextField.isAnyTextFieldEditing = false
+        }
     }
+    
+    // Global state to track if any text field is being edited
+    static var isAnyTextFieldEditing = false
 }
 
-// MARK: - Search Bar View
+// MARK: - Search Bar View (SwiftUI Native)
 
 struct SearchBarView: View {
     @Binding var text: String
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 6) {
@@ -74,19 +90,17 @@ struct SearchBarView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.white.opacity(0.6))
 
-            AppKitTextField(
-                text: $text,
-                placeholder: "搜索",
-                onCreated: { field in
-                    SearchBarView._searchField = field
-                }
-            )
-            .frame(height: 20)
+            TextField("搜索", text: $text)
+                .textFieldStyle(.plain)
+                .font(.system(size: 15))
+                .foregroundColor(.white)
+                .focused($isFocused)
+                .frame(height: 20)
 
             if !text.isEmpty {
                 Button(action: {
                     text = ""
-                    SearchBarView.focusSearchField()
+                    isFocused = true
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 12))
@@ -105,20 +119,24 @@ struct SearchBarView: View {
                         .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
                 )
         )
-    }
-
-    // MARK: - Static focus management
-
-    static weak var _searchField: NSTextField?
-
-    static func focusSearchField() {
-        guard let field = _searchField else { return }
-        DispatchQueue.main.async {
-            field.window?.makeFirstResponder(field)
+        .onAppear {
+            // Auto-focus when view appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isFocused = true
+            }
         }
     }
-
+    
+    // Static methods for compatibility (now control FocusState)
+    static var _focusBinding: Binding<Bool>?
+    
+    static func focusSearchField() {
+        DispatchQueue.main.async {
+            _focusBinding?.wrappedValue = true
+        }
+    }
+    
     static var isSearchFieldFocused: Bool {
-        _searchField?.currentEditor() != nil
+        _focusBinding?.wrappedValue ?? false
     }
 }

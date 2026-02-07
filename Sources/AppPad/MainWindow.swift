@@ -11,9 +11,12 @@ class MainWindow: NSPanel {
     override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
 
-        // NSPanel text input support
+        // NSPanel text input support - CRITICAL settings
         self.becomesKeyOnlyIfNeeded = false
         self.hidesOnDeactivate = false
+        self.worksWhenModal = true  // IMPORTANT: Allows text input in panels
+        self.isFloatingPanel = true
+        self.styleMask.insert(.nonactivatingPanel)  // But allow becoming key
 
         // 1. Transparent Background
         self.isOpaque = false
@@ -76,6 +79,10 @@ class MainWindow: NSPanel {
     }
 
     override var canBecomeMain: Bool {
+        return true
+    }
+    
+    override var acceptsFirstResponder: Bool {
         return true
     }
 
