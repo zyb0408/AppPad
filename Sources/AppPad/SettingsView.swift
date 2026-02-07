@@ -5,10 +5,13 @@ struct SettingsView: View {
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
     @AppStorage("gestureSensitivity") private var gestureSensitivity: Double = 0.5
-    @AppStorage("backgroundBlurIntensity") private var backgroundBlurIntensity: Double = 1.0
+    @AppStorage("backgroundColorHex") private var backgroundColorHex: String = "#1E1E1E"
+    @AppStorage("backgroundOpacity") private var backgroundOpacity: Double = 0.85
     @AppStorage("animationSpeed") private var animationSpeed: Double = 0.3
     @AppStorage("globalShortcutEnabled") private var globalShortcutEnabled: Bool = true
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
+    
+    @State private var selectedColor: Color = Color(hex: "#1E1E1E")
     
     var body: some View {
         TabView {
@@ -36,14 +39,29 @@ struct SettingsView: View {
                 }
                 
                 Section(header: Text("视觉效果")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("背景模糊")
-                            Spacer()
-                            Text("\(Int(backgroundBlurIntensity * 100))%")
-                                .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Background color picker
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("背景颜色")
+                            ColorPicker("", selection: $selectedColor, supportsOpacity: true)
+                                .labelsHidden()
+                                .onChange(of: selectedColor) { _, newColor in
+                                    backgroundColorHex = newColor.toHex()
+                                }
                         }
-                        Slider(value: $backgroundBlurIntensity, in: 0.0...1.0, step: 0.1)
+                        
+                        Divider()
+                        
+                        // Background opacity slider
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("背景透明度")
+                                Spacer()
+                                Text("\(Int(backgroundOpacity * 100))%")
+                                    .foregroundColor(.secondary)
+                            }
+                            Slider(value: $backgroundOpacity, in: 0.0...1.0, step: 0.05)
+                        }
                     }
                 }
             }
@@ -147,6 +165,10 @@ struct SettingsView: View {
             }
         }
         .frame(width: 500, height: 400)
+        .onAppear {
+            // Initialize color from stored hex value
+            selectedColor = Color(hex: backgroundColorHex)
+        }
     }
     
     private func resetToDefaults() {
@@ -154,7 +176,9 @@ struct SettingsView: View {
         gridColumns = 7
         gridRows = 5
         gestureSensitivity = 0.5
-        backgroundBlurIntensity = 1.0
+        backgroundColorHex = "#1E1E1E"
+        selectedColor = Color(hex: "#1E1E1E")
+        backgroundOpacity = 0.85
         animationSpeed = 0.3
         globalShortcutEnabled = true
         launchAtLogin = false

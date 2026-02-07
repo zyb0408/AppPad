@@ -7,6 +7,8 @@ struct ContentView: View {
 
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
+    @AppStorage("backgroundColorHex") private var backgroundColorHex: String = "#1E1E1E"
+    @AppStorage("backgroundOpacity") private var backgroundOpacity: Double = 0.85
 
     @Environment(\.modelContext) private var modelContext: ModelContext
 
@@ -17,9 +19,10 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Material background
+                // Custom background with color and opacity
                 Rectangle()
-                    .fill(.ultraThinMaterial)
+                    .fill(Color(hex: backgroundColorHex))
+                    .opacity(backgroundOpacity)
                     .ignoresSafeArea()
                     .onTapGesture {
                         handleBackgroundTap()
