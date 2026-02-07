@@ -60,7 +60,7 @@ struct FolderExpandedView: View {
         .frame(width: max(CGFloat(displayColumns) * (iconSize + 50) + 40, 300))
         .background(
             RoundedRectangle(cornerRadius: 26)
-                .fill(.ultraThickMaterial)
+                .fill(.ultraThinMaterial)
                 .shadow(radius: 30)
         )
         .onAppear {
