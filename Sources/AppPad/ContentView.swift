@@ -31,10 +31,12 @@ struct ContentView: View {
                 // Main content
                 VStack(spacing: 0) {
                     // Search bar
-                    SearchBarView(text: $viewModel.searchText)
-                        .frame(width: 260)
-                        .padding(.top, 50)
-                        .padding(.bottom, 10)
+                    SearchBarView(text: $viewModel.searchText) {
+                        viewModel.openFirstSearchResult()
+                    }
+                    .frame(width: 260)
+                    .padding(.top, 50)
+                    .padding(.bottom, 10)
 
                     // Icon Grid
                     IconGridView(viewModel: viewModel, currentPage: $currentPage)

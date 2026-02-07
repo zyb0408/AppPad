@@ -82,6 +82,7 @@ struct AppKitTextField: NSViewRepresentable {
 
 struct SearchBarView: View {
     @Binding var text: String
+    var onSubmit: (() -> Void)? = nil
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -96,6 +97,9 @@ struct SearchBarView: View {
                 .foregroundColor(.white)
                 .focused($isFocused)
                 .frame(height: 20)
+                .onSubmit {
+                    onSubmit?()
+                }
 
             if !text.isEmpty {
                 Button(action: {

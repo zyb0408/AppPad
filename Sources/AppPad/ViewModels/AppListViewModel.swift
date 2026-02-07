@@ -70,6 +70,37 @@ class AppListViewModel: ObservableObject {
         }
         return all
     }
+    
+    /// Open the first app in the current search results
+    func openFirstSearchResult() {
+        // Only works when searching
+        guard !searchText.isEmpty else { return }
+        
+        // Get the first app from grid items
+        if let firstItem = gridItems.first {
+            switch firstItem {
+            case .app(let appIcon):
+                launchApp(appIcon)
+            case .folder:
+                // If it's a folder, we don't open it on Enter
+                break
+            }
+        }
+    }
+    
+    /// Launch an app by its AppIcon
+    func launchApp(_ app: AppIcon) {
+        let url = URL(fileURLWithPath: app.iconPath)
+        NSWorkspace.shared.open(url)
+        
+        // Hide window after launching
+        if let window = NSApp.keyWindow {
+            WindowAnimationManager.shared.hideWindow(window)
+        }
+        
+        // Clear search text
+        searchText = ""
+    }
 
     // MARK: - Grid Rebuild
 
