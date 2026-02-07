@@ -1,16 +1,25 @@
 import SwiftUI
 import Combine
+import SwiftData
 
 @MainActor
 class AppListViewModel: ObservableObject {
+    // App data
     @Published var apps: [AppIcon] = []
-    @Published var filteredApps: [AppIcon] = []
+    @Published var folders: [Folder] = []
+    @Published var gridItems: [GridItem] = []
     @Published var isLoading = false
     @Published var searchText = ""
-    
+
+    // Edit & drag state
+    @Published var isEditMode = false
+    @Published var openFolderId: UUID? = nil
+    @Published var draggedIcon: AppIcon? = nil
+
     private let scanner = AppScanner()
     private var cancellables = Set<AnyCancellable>()
-    
+    private var modelContext: ModelContext?
+
     init() {
         $searchText
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
@@ -19,49 +28,380 @@ class AppListViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
+    func setModelContext(_ context: ModelContext) {
+        self.modelContext = context
+    }
+
+    // MARK: - Search / Filter
+
     private func filterApps(_ text: String) {
         guard !text.isEmpty else {
-            filteredApps = apps
+            rebuildGridItems()
             return
         }
-        
+
         let lowerText = text.lowercased()
-        
-        filteredApps = apps.filter { app in
-            // 1. Direct match
+
+        // Search mode: search ALL apps including those in folders
+        let allApps = allAppsFlat()
+        let matched = allApps.filter { app in
             if app.name.lowercased().contains(lowerText) {
                 return true
             }
-            
-            // 2. Pinyin match (Simple)
             let pinyin = app.name.transformToPinyin()
             if pinyin.contains(lowerText) {
                 return true
             }
-            
-            // 3. Pinyin Initials (Acronyms) e.g. "wx" -> "WeiXin"
             let initials = app.name.transformToPinyinInitials()
             if initials.contains(lowerText) {
                 return true
             }
-            
             return false
         }
+
+        gridItems = matched.map { .app($0) }
     }
-    
+
+    private func allAppsFlat() -> [AppIcon] {
+        var all = apps.filter { $0.folderId == nil }
+        for folder in folders {
+            all.append(contentsOf: folder.appIcons)
+        }
+        return all
+    }
+
+    // MARK: - Grid Rebuild
+
+    func rebuildGridItems() {
+        var items: [GridItem] = []
+        items += apps.filter { $0.folderId == nil }.map { .app($0) }
+        items += folders.map { .folder($0) }
+        items.sort { $0.position < $1.position }
+        gridItems = items
+    }
+
+    // MARK: - Load Apps
+
     func loadApps() {
         guard !isLoading else { return }
         isLoading = true
-        
+
         Task {
             let foundApps = await scanner.scanApplications()
-            self.apps = foundApps
-            self.filteredApps = foundApps
+
+            // Try to load persisted state
+            if let context = modelContext {
+                loadFromPersistence(context: context, scannedApps: foundApps)
+            } else {
+                self.apps = foundApps
+                self.folders = []
+            }
+
+            rebuildGridItems()
             self.isLoading = false
         }
     }
+
+    // MARK: - Folder CRUD
+
+    func createFolder(from sourceApp: AppIcon, onto targetApp: AppIcon) {
+        let folderName = suggestFolderName(for: [sourceApp, targetApp])
+        let targetPosition = targetApp.position
+
+        var source = sourceApp
+        source.folderId = nil
+        source.position = 0
+
+        var target = targetApp
+        target.folderId = nil
+        target.position = 1
+
+        let folder = Folder(
+            name: folderName,
+            position: targetPosition,
+            appIcons: [target, source]
+        )
+
+        // Remove apps from root grid
+        apps.removeAll { $0.id == sourceApp.id || $0.id == targetApp.id }
+
+        // Update folderId on the original apps array
+        folders.append(folder)
+
+        // Reindex positions
+        reindexPositions()
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
+    func addAppToFolder(app: AppIcon, folderId: UUID) {
+        guard let folderIndex = folders.firstIndex(where: { $0.id == folderId }) else { return }
+
+        // Remove from root
+        apps.removeAll { $0.id == app.id }
+
+        // Also check if it's already in another folder
+        for i in folders.indices {
+            folders[i].appIcons.removeAll { $0.id == app.id }
+        }
+
+        var appCopy = app
+        appCopy.folderId = folderId
+        appCopy.position = folders[folderIndex].appIcons.count
+        folders[folderIndex].appIcons.append(appCopy)
+
+        reindexPositions()
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
+    func removeAppFromFolder(app: AppIcon, folderId: UUID) {
+        guard let folderIndex = folders.firstIndex(where: { $0.id == folderId }) else { return }
+
+        folders[folderIndex].appIcons.removeAll { $0.id == app.id }
+
+        // Add back to root level
+        var appCopy = app
+        appCopy.folderId = nil
+        appCopy.position = (gridItems.map { $0.position }.max() ?? 0) + 1
+        apps.append(appCopy)
+
+        // Auto-dissolve folder if ≤ 1 app
+        if folders[folderIndex].appIcons.count <= 1 {
+            dissolveFolder(at: folderIndex)
+        }
+
+        reindexPositions()
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
+    func renameFolder(folderId: UUID, name: String) {
+        guard let index = folders.firstIndex(where: { $0.id == folderId }) else { return }
+        folders[index].name = name
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
+    func deleteFolder(folderId: UUID) {
+        guard let index = folders.firstIndex(where: { $0.id == folderId }) else { return }
+        dissolveFolder(at: index)
+        reindexPositions()
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
+    private func dissolveFolder(at index: Int) {
+        let folder = folders[index]
+        let basePosition = folder.position
+
+        // Move remaining apps back to root
+        for (i, var app) in folder.appIcons.enumerated() {
+            app.folderId = nil
+            app.position = basePosition + i
+            apps.append(app)
+        }
+
+        folders.remove(at: index)
+    }
+
+    func openFolder(folderId: UUID) {
+        openFolderId = folderId
+    }
+
+    func closeFolder() {
+        openFolderId = nil
+    }
+
+    func getOpenFolder() -> Folder? {
+        guard let id = openFolderId else { return nil }
+        return folders.first { $0.id == id }
+    }
+
+    // MARK: - Drag & Drop
+
+    func handleDrop(source: AppIcon, target: AppIcon) {
+        if isEditMode {
+            // Create folder from two apps
+            createFolder(from: source, onto: target)
+        } else {
+            // Swap positions
+            swapPositions(source: source, target: target)
+        }
+    }
+
+    private func swapPositions(source: AppIcon, target: AppIcon) {
+        guard let sourceIndex = apps.firstIndex(where: { $0.id == source.id }),
+              let targetIndex = apps.firstIndex(where: { $0.id == target.id }) else { return }
+
+        let tempPosition = apps[sourceIndex].position
+        apps[sourceIndex].position = apps[targetIndex].position
+        apps[targetIndex].position = tempPosition
+
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
+    // MARK: - Position Management
+
+    private func reindexPositions() {
+        // Reindex root apps and folders by current order
+        var allItems: [GridItem] = []
+        allItems += apps.filter { $0.folderId == nil }.map { .app($0) }
+        allItems += folders.map { .folder($0) }
+        allItems.sort { $0.position < $1.position }
+
+        for (i, item) in allItems.enumerated() {
+            switch item {
+            case .app(let icon):
+                if let idx = apps.firstIndex(where: { $0.id == icon.id }) {
+                    apps[idx].position = i
+                }
+            case .folder(let folder):
+                if let idx = folders.firstIndex(where: { $0.id == folder.id }) {
+                    folders[idx].position = i
+                }
+            }
+        }
+
+        // Reindex apps within each folder
+        for fi in folders.indices {
+            for ai in folders[fi].appIcons.indices {
+                folders[fi].appIcons[ai].position = ai
+            }
+        }
+    }
+
+    // MARK: - Folder Naming
+
+    private func suggestFolderName(for apps: [AppIcon]) -> String {
+        for app in apps {
+            let path = app.iconPath.lowercased()
+            if path.contains("/utilities/") || path.contains("/实用工具/") {
+                return "实用工具"
+            }
+            if path.contains("/system/applications") {
+                return "其他"
+            }
+        }
+        return "新建文件夹"
+    }
+
+    // MARK: - Persistence
+
+    func saveToPersistence() {
+        guard let context = modelContext else { return }
+
+        // Save folders
+        do {
+            try context.delete(model: FolderEntity.self)
+        } catch { }
+
+        for folder in folders {
+            let entity = FolderEntity(
+                id: folder.id,
+                name: folder.name,
+                position: folder.position
+            )
+            context.insert(entity)
+
+            // Save folder apps with folderId
+            for app in folder.appIcons {
+                saveAppEntity(app: app, folderId: folder.id, context: context)
+            }
+        }
+
+        // Save root-level apps
+        for app in apps where app.folderId == nil {
+            saveAppEntity(app: app, folderId: nil, context: context)
+        }
+
+        try? context.save()
+    }
+
+    private func saveAppEntity(app: AppIcon, folderId: UUID?, context: ModelContext) {
+        let predicate = #Predicate<AppIconEntity> { entity in
+            entity.bundleIdentifier == app.bundleIdentifier
+        }
+        let descriptor = FetchDescriptor(predicate: predicate)
+
+        if let existing = try? context.fetch(descriptor).first {
+            existing.position = app.position
+            existing.folderId = folderId
+            existing.name = app.name
+            existing.iconPath = app.iconPath
+        } else {
+            let entity = AppIconEntity(
+                bundleIdentifier: app.bundleIdentifier,
+                name: app.name,
+                iconPath: app.iconPath,
+                position: app.position,
+                folderId: folderId
+            )
+            context.insert(entity)
+        }
+    }
+
+    func loadFromPersistence(context: ModelContext, scannedApps: [AppIcon]) {
+        // Load saved folder data
+        let folderDescriptor = FetchDescriptor<FolderEntity>(sortBy: [SortDescriptor(\.position)])
+        let savedFolders = (try? context.fetch(folderDescriptor)) ?? []
+
+        // Load saved app positions
+        let appDescriptor = FetchDescriptor<AppIconEntity>()
+        let savedAppEntities = (try? context.fetch(appDescriptor)) ?? []
+
+        let savedAppMap = Dictionary(uniqueKeysWithValues: savedAppEntities.map { ($0.bundleIdentifier, $0) })
+
+        // Build folders
+        var loadedFolders: [Folder] = []
+        for folderEntity in savedFolders {
+            var folderApps: [AppIcon] = []
+            for scannedApp in scannedApps {
+                if let saved = savedAppMap[scannedApp.bundleIdentifier],
+                   saved.folderId == folderEntity.id {
+                    var app = scannedApp
+                    app.folderId = folderEntity.id
+                    app.position = saved.position
+                    folderApps.append(app)
+                }
+            }
+            folderApps.sort { $0.position < $1.position }
+
+            if !folderApps.isEmpty {
+                let folder = Folder(
+                    id: folderEntity.id,
+                    name: folderEntity.name,
+                    position: folderEntity.position,
+                    appIcons: folderApps
+                )
+                loadedFolders.append(folder)
+            }
+        }
+
+        // Build root apps (not in any folder)
+        let folderAppIds = Set(loadedFolders.flatMap { $0.appIcons.map { $0.bundleIdentifier } })
+        var rootApps: [AppIcon] = []
+        for scannedApp in scannedApps {
+            if !folderAppIds.contains(scannedApp.bundleIdentifier) {
+                var app = scannedApp
+                if let saved = savedAppMap[app.bundleIdentifier] {
+                    app.position = saved.position
+                } else {
+                    app.position = rootApps.count + loadedFolders.count
+                }
+                rootApps.append(app)
+            }
+        }
+        rootApps.sort { $0.position < $1.position }
+
+        self.apps = rootApps
+        self.folders = loadedFolders
+    }
 }
+
+// MARK: - String Extensions
 
 extension String {
     func transformToPinyin() -> String {
@@ -70,13 +410,13 @@ extension String {
         CFStringTransform(stringRef, nil, kCFStringTransformStripDiacritics, false)
         return (stringRef as String).lowercased().replacingOccurrences(of: " ", with: "")
     }
-    
+
     func transformToPinyinInitials() -> String {
         let stringRef = NSMutableString(string: self) as CFMutableString
         CFStringTransform(stringRef, nil, kCFStringTransformToLatin, false)
         CFStringTransform(stringRef, nil, kCFStringTransformStripDiacritics, false)
         let pinyin = (stringRef as String)
-        
+
         let initials = pinyin.components(separatedBy: " ").compactMap { $0.first }.map { String($0) }
         return initials.joined().lowercased()
     }

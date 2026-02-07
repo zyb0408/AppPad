@@ -1,40 +1,48 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Drag and drop support for app icons
 struct DraggableAppIcon: View {
     let icon: AppIcon
     let size: Double
     @Binding var draggedIcon: AppIcon?
     @Binding var isEditMode: Bool
     var onLaunch: () -> Void
-    var onDrop: (AppIcon, AppIcon) -> Void // (source, target)
-    
+    var onDrop: (AppIcon, AppIcon) -> Void
+
     @State private var iconImage: NSImage?
     @State private var isHovering = false
     @State private var isDragging = false
-    @State private var longPressTimer: Timer?
-    
+    @State private var showFolderHint = false
+    @State private var hoverTimer: DispatchWorkItem?
+
     var body: some View {
         VStack(spacing: 8) {
-            // Icon Image with shake animation in edit mode
-            Group {
-                if let nsImage = iconImage {
-                    Image(nsImage: nsImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } else {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.gray.opacity(0.3))
+            ZStack {
+                // Folder creation hint overlay
+                if showFolderHint {
+                    RoundedRectangle(cornerRadius: size * 0.22)
+                        .fill(.ultraThinMaterial)
+                        .frame(width: size * 1.15, height: size * 1.15)
+                        .transition(.scale)
                 }
+
+                Group {
+                    if let nsImage = iconImage {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.gray.opacity(0.3))
+                    }
+                }
+                .frame(width: size, height: size)
+                .shadow(radius: 5)
             }
-            .frame(width: size, height: size)
-            .shadow(radius: 5)
             .overlay(alignment: .topTrailing) {
-                // Delete button in edit mode
                 if isEditMode {
                     Button(action: {
-                        // TODO: Implement delete
+                        // Hide app (could be implemented later)
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 20))
@@ -52,7 +60,7 @@ struct DraggableAppIcon: View {
             .onAppear {
                 loadIcon()
             }
-            
+
             Text(icon.name)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.white)
@@ -68,7 +76,6 @@ struct DraggableAppIcon: View {
             }
         }
         .onLongPressGesture(minimumDuration: 0.5) {
-            // Enter edit mode on long press
             withAnimation(.spring()) {
                 isEditMode = true
             }
@@ -78,17 +85,20 @@ struct DraggableAppIcon: View {
             draggedIcon = icon
             return NSItemProvider(object: icon.bundleIdentifier as NSString)
         }
-        .onDrop(of: [.text], delegate: DropDelegate(
+        .onDrop(of: [.text], delegate: AppIconDropDelegate(
             icon: icon,
             draggedIcon: $draggedIcon,
             isHovering: $isHovering,
+            showFolderHint: $showFolderHint,
+            hoverTimer: $hoverTimer,
+            isEditMode: isEditMode,
             onDrop: { source in
                 onDrop(source, icon)
                 isDragging = false
             }
         ))
     }
-    
+
     private func loadIcon() {
         DispatchQueue.global(qos: .userInteractive).async {
             let image = NSWorkspace.shared.icon(forFile: icon.iconPath)
@@ -97,40 +107,64 @@ struct DraggableAppIcon: View {
             }
         }
     }
-    
-    // Shake animation for edit mode
+
     private func shakeAngle() -> Angle {
         let angles: [Double] = [-2, 2, -2, 2, -2]
         return .degrees(angles.randomElement() ?? 0)
     }
-    
+
     private func shakeAnimation() -> Animation {
         Animation.easeInOut(duration: 0.1)
             .repeatForever(autoreverses: true)
     }
 }
 
-struct DropDelegate: SwiftUI.DropDelegate {
+// MARK: - Drop Delegate with Hover Timer for Folder Creation
+
+struct AppIconDropDelegate: SwiftUI.DropDelegate {
     let icon: AppIcon
     @Binding var draggedIcon: AppIcon?
     @Binding var isHovering: Bool
+    @Binding var showFolderHint: Bool
+    @Binding var hoverTimer: DispatchWorkItem?
+    let isEditMode: Bool
     var onDrop: (AppIcon) -> Void
-    
+
     func dropEntered(info: DropInfo) {
+        guard draggedIcon?.id != icon.id else { return }
         isHovering = true
+
+        if isEditMode {
+            // Start hover timer for folder creation visual
+            let timer = DispatchWorkItem {
+                withAnimation(.spring(response: 0.3)) {
+                    showFolderHint = true
+                }
+            }
+            hoverTimer = timer
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: timer)
+        }
     }
-    
+
     func dropExited(info: DropInfo) {
         isHovering = false
+        hoverTimer?.cancel()
+        hoverTimer = nil
+        withAnimation {
+            showFolderHint = false
+        }
     }
-    
+
     func performDrop(info: DropInfo) -> Bool {
         isHovering = false
-        guard let draggedIcon = draggedIcon else { return false }
-        onDrop(draggedIcon)
+        hoverTimer?.cancel()
+        hoverTimer = nil
+        showFolderHint = false
+        guard let source = draggedIcon, source.id != icon.id else { return false }
+        onDrop(source)
         return true
     }
-    
+
     func dropUpdated(info: DropInfo) -> DropProposal? {
         return DropProposal(operation: .move)
     }
