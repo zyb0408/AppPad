@@ -13,13 +13,14 @@
 - ✅ **平滑动画** - 缩放+淡入淡出效果
 - ✅ **菜单栏集成** - 常驻菜单栏，快速访问
 - ✅ **丰富的设置** - 图标大小、网格布局、动画速度等
+- ✅ **文件夹支持** - 创建、命名、展开和管理应用文件夹
+- ✅ **可靠的文本输入** - 搜索框和文件夹名称编辑完全可用
 
 ### 开发中功能
 - 🚧 **拖拽重排序** - 自由调整应用图标位置
-- 🚧 **文件夹支持** - 拖拽创建文件夹，组织应用
 - 🚧 **编辑模式** - 长按进入编辑模式，删除应用
-- 🚧 **数据持久化** - 保存自定义布局
 - 🚧 **触发角** - 鼠标移到屏幕角落激活
+- 🚧 **启动时启动** - 系统启动时自动运行（使用 ServiceManagement）
 
 ## 🚀 快速开始
 
@@ -82,6 +83,12 @@ swift build -c release
 - 双指在触控板上左右滑动
 - 点击底部页面指示器圆点
 
+#### 文件夹操作
+- **查看文件夹内容**：点击文件夹图标
+- **编辑文件夹名称**：点击文件夹展开后，在名称字段输入新名称
+- **从文件夹移出应用**：打开文件夹后，右键点击应用选择"从文件夹移出"
+- **关闭文件夹**：点击背景暗化区域
+
 #### 启动应用
 - 点击应用图标
 - 应用启动后，AppPad自动隐藏
@@ -128,39 +135,75 @@ swift build -c release
 ```
 AppPad/
 ├── Sources/AppPad/
-│   ├── AppPadApp.swift              # 应用入口
-│   ├── ContentView.swift            # 主视图
-│   ├── IconGridView.swift           # 图标网格
-│   ├── MainWindow.swift             # 自定义窗口
+│   ├── AppPadApp.swift              # 应用入口 + AppDelegate
+│   ├── ContentView.swift            # 主视图，处理分页和文件夹叠加层
+│   ├── MainWindow.swift             # 自定义NSWindow，处理全屏和文本输入
 │   ├── SettingsView.swift           # 设置界面
+│   ├── ClickableHostingView.swift    # 自定义NSView，用于检测背景点击
 │   ├── Models/
-│   │   ├── AppIcon.swift            # 应用图标模型
-│   │   └── DataModels.swift         # SwiftData模型
+│   │   ├── AppIcon.swift            # 应用图标模型（内存中）
+│   │   └── DataModels.swift         # SwiftData实体（AppIconEntity, FolderEntity等）
 │   ├── Services/
-│   │   ├── AppScanner.swift         # 应用扫描服务
-│   │   ├── GlobalHotkeyManager.swift # 全局快捷键
-│   │   └── WindowAnimationManager.swift # 窗口动画
+│   │   ├── AppScanner.swift         # Actor-based应用扫描服务
+│   │   ├── GlobalHotkeyManager.swift # Carbon API全局快捷键
+│   │   └── WindowAnimationManager.swift # NSAnimationContext窗口动画
 │   ├── ViewModels/
-│   │   └── AppListViewModel.swift   # 应用列表视图模型
+│   │   └── AppListViewModel.swift   # 中央状态容器（应用列表、搜索、文件夹）
+│   ├── Extensions/
+│   │   └── Color+Hex.swift          # 颜色十六进制扩展
 │   └── Views/
-│       ├── DraggableAppIcon.swift   # 可拖拽图标
-│       ├── PageGestureView.swift    # 手势处理
-│       └── SearchField.swift        # 搜索框
+│       ├── SearchField.swift        # SwiftUI搜索框组件
+│       ├── DraggableAppIcon.swift   # 可拖拽的应用图标
+│       ├── FolderIconView.swift     # 文件夹图标（带mini网格预览）
+│       ├── FolderExpandedView.swift # 文件夹展开视图（可编辑名称）
+│       ├── PageGestureView.swift    # 手势处理（分页、长按）
+│       └── IconGridView.swift       # 应用图标网格（支持应用和文件夹）
 ├── Package.swift                     # Swift Package配置
-└── IMPROVEMENTS.md                   # 改进记录
+├── CLAUDE.md                         # Claude AI开发指南
+└── README.md                         # 项目文档
 ```
 
 ### 技术栈
-- **UI框架**：SwiftUI + AppKit
-- **数据持久化**：SwiftData
+- **UI框架**：SwiftUI + AppKit（混合方案）
+- **数据持久化**：SwiftData（实体：AppIconEntity、FolderEntity、UserPreferencesEntity）
 - **全局快捷键**：Carbon API
-- **动画**：NSAnimationContext
-- **响应式**：Combine + @AppStorage
+- **动画**：NSAnimationContext + SwiftUI Transitions
+- **响应式**：Combine + @AppStorage + @StateObject
+- **并发**：Actor-based（AppScanner）+ Task/MainActor
+- **窗口管理**：自定义NSWindow + NSPanel属性
 
 ### 贡献指南
 欢迎贡献！请查看 `IMPROVEMENTS.md` 了解待完成的功能。
 
+## 📋 未来工作计划
+
+### 高优先级
+1. ✅ ~~完成SwiftData集成~~ （已完成）
+2. ✅ ~~实现文件夹功能~~ （已完成）
+3. ✅ ~~修复文本输入问题~~ （已完成 v1.1.0）
+4. 实现拖拽重排序并持久化
+5. 完成删除应用功能（编辑模式）
+
+### 中优先级
+6. 搜索结果突出显示和键盘导航
+7. 热角支持（角落检测 + 窗口显示）
+8. 自定义快捷键配置UI
+9. 启动时启动（ServiceManagement框架）
+
+### 低优先级
+10. Metal渲染优化（Liquid Glass效果）
+11. 图标缓存层（NSImage）
+12. 120fps动画目标
+13. 主题系统增强
+
 ## 📝 更新日志
+
+### v1.1.0 (2026-02-22)
+- ✅ 文件夹支持完整实现（创建、命名、展开、应用管理）
+- ✅ 文本输入修复（搜索框和文件夹名称编辑）
+- ✅ SwiftData集成完成
+- ✅ 改进的UI/UX（文件夹预览网格、展开动画）
+- ✅ 应用图标和图标主题优化
 
 ### v1.0.0 (2026-02-04)
 - ✅ 初始版本发布
@@ -173,8 +216,17 @@ AppPad/
 ## 🐛 已知问题
 
 1. **权限问题**：首次运行需要授予多项权限
-2. **文件夹功能**：尚未实现
-3. **数据持久化**：布局更改不会保存（开发中）
+   - 辅助功能（用于全局快捷键）
+   - 完全磁盘访问（用于扫描所有应用）
+
+2. **拖拽重排序**：UI已准备就绪但数据持久化未完成
+
+### ✅ 最近修复
+
+**文本输入问题（2026-02-07）** - 已解决
+- 原因：NSPanel 的 `.fullSizeContentView` 样式掩码阻止了文本输入
+- 解决方案：移除 `.fullSizeContentView`，添加 `worksWhenModal = true` 属性
+- 结果：搜索框和文件夹名称编辑现在完全可用
 
 ## 📄 许可证
 
@@ -190,4 +242,4 @@ AppPad/
 
 ---
 
-**注意**：本项目正在积极开发中，部分功能可能尚未完全实现。查看 `IMPROVEMENTS.md` 了解开发路线图。
+**注意**：本项目正在积极开发中。查看上面的"未来工作计划"部分了解开发路线图。
