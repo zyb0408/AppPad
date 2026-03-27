@@ -73,7 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         self.mainWindow = window
 
-        GlobalHotkeyManager.shared.registerDefaultHotkey { [weak self] in
+        GlobalHotkeyManager.shared.configure { [weak self] in
             Task { @MainActor in
                 self?.toggleWindow()
             }

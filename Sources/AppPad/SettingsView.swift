@@ -1,4 +1,5 @@
 import SwiftUI
+import Carbon
 
 struct SettingsView: View {
     @AppStorage("iconSize") private var iconSize: Double = 80.0
@@ -9,11 +10,31 @@ struct SettingsView: View {
     @AppStorage("backgroundOpacity") private var backgroundOpacity: Double = 0.85
     @AppStorage("animationSpeed") private var animationSpeed: Double = 0.3
     @AppStorage("globalShortcutEnabled") private var globalShortcutEnabled: Bool = true
+    @AppStorage(AppHotkey.keyCodeDefaultsKey) private var globalShortcutKeyCode: Int = Int(AppHotkey.default.keyCode)
+    @AppStorage(AppHotkey.modifiersDefaultsKey) private var globalShortcutModifiers: Int = Int(AppHotkey.default.modifiers)
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
     
     @State private var selectedColor: Color = Color(hex: "#a94040ff")
+    @State private var launchAtLoginError: String?
+    @State private var hotkeyHint: String?
+    @State private var didSyncLaunchAtLoginState = false
     
     private let labelWidth: CGFloat = 100
+
+    private var shortcutBinding: Binding<AppHotkey> {
+        Binding(
+            get: {
+                AppHotkey(
+                    keyCode: UInt32(globalShortcutKeyCode),
+                    modifiers: UInt32(globalShortcutModifiers)
+                )
+            },
+            set: { newValue in
+                globalShortcutKeyCode = Int(newValue.keyCode)
+                globalShortcutModifiers = Int(newValue.modifiers)
+            }
+        )
+    }
     
     var body: some View {
         TabView {
@@ -38,6 +59,16 @@ struct SettingsView: View {
         .frame(width: 480, height: 380)
         .onAppear {
             selectedColor = Color(hex: backgroundColorHex)
+            launchAtLogin = LaunchAtLoginManager.shared.isEnabled
+            didSyncLaunchAtLoginState = true
+        }
+        .onChange(of: globalShortcutEnabled) { _, newValue in
+            hotkeyHint = newValue ? nil : "已关闭全局快捷键"
+            GlobalHotkeyManager.shared.reloadRegistration()
+        }
+        .onChange(of: launchAtLogin) { _, newValue in
+            guard didSyncLaunchAtLoginState else { return }
+            updateLaunchAtLogin(newValue)
         }
     }
     
@@ -178,14 +209,19 @@ struct SettingsView: View {
                         }
                         
                         SettingsRowView(label: "热键", labelWidth: labelWidth) {
-                            HStack(spacing: 4) {
-                                KeyCapView(key: "⌥")
-                                Text("+")
-                                    .foregroundColor(.secondary)
-                                KeyCapView(key: "Space")
+                            HotkeyRecorderView(hotkey: shortcutBinding, isEnabled: globalShortcutEnabled) { newHotkey in
+                                shortcutBinding.wrappedValue = newHotkey
+                                hotkeyHint = "新的快捷键已生效"
+                                GlobalHotkeyManager.shared.reloadRegistration()
                             }
+                            .frame(width: 180, height: 32)
                             Spacer()
                         }
+
+                        Text(globalShortcutEnabled ? (hotkeyHint ?? "点击后按下新的组合键，必须包含修饰键") : "启用后才会注册系统级快捷键")
+                            .font(.caption)
+                            .foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                            .padding(.leading, labelWidth + 8)
                     }
                 }
             }
@@ -199,11 +235,18 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // 启动
                 SettingsSectionView(title: "启动") {
-                    SettingsRowView(label: "登录时启动", labelWidth: labelWidth) {
-                        Toggle("", isOn: $launchAtLogin)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                        Spacer()
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsRowView(label: "登录时启动", labelWidth: labelWidth) {
+                            Toggle("", isOn: $launchAtLogin)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                            Spacer()
+                        }
+
+                        Text(launchAtLoginError ?? "启用后会通过系统登录项自动启动 AppPad")
+                            .font(.caption)
+                            .foregroundColor(launchAtLoginError == nil ? Color(nsColor: .tertiaryLabelColor) : .red)
+                            .padding(.leading, labelWidth + 8)
                     }
                 }
                 
@@ -258,6 +301,20 @@ struct SettingsView: View {
         animationSpeed = 0.3
         globalShortcutEnabled = true
         launchAtLogin = false
+        shortcutBinding.wrappedValue = .default
+        hotkeyHint = "已恢复为默认快捷键"
+        GlobalHotkeyManager.shared.reloadRegistration()
+        updateLaunchAtLogin(false)
+    }
+
+    private func updateLaunchAtLogin(_ enabled: Bool) {
+        do {
+            try LaunchAtLoginManager.shared.setEnabled(enabled)
+            launchAtLoginError = nil
+        } catch {
+            launchAtLoginError = "登录项更新失败：\(error.localizedDescription)"
+            launchAtLogin = LaunchAtLoginManager.shared.isEnabled
+        }
     }
 }
 
