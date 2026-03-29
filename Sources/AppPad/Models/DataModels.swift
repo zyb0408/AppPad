@@ -81,7 +81,7 @@ final class UserPreferencesEntity {
         self.hotCornerEnabled = false
         self.hotCornerPosition = "bottomLeft"
         self.backgroundBlurIntensity = 1.0
-        self.animationSpeed = 0.3
+        self.animationSpeed = 0.2
         self.launchAtLogin = false
     }
 }

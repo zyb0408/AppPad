@@ -57,15 +57,15 @@ enum AppPadGestureKind: String, CaseIterable, Identifiable {
     var defaultAction: AppPadGestureAction {
         switch self {
         case .swipeLeft:
-            return .nextPage
-        case .swipeRight:
             return .previousPage
+        case .swipeRight:
+            return .nextPage
         case .swipeUp:
             return .none
         case .swipeDown:
             return .closeAppPad
         case .magnifyIn:
-            return .closeAppPad
+            return .none
         case .magnifyOut:
             return .none
         }
@@ -125,7 +125,8 @@ enum AppPadInputSettings {
             gesturesEnabledDefaultsKey: true,
             hotCornerEnabledDefaultsKey: false,
             hotCornerPositionDefaultsKey: AppPadHotCorner.bottomLeft.rawValue,
-            hotCornerActionDefaultsKey: AppPadHotCornerAction.toggleAppPad.rawValue
+            hotCornerActionDefaultsKey: AppPadHotCornerAction.toggleAppPad.rawValue,
+            "animationSpeed": 0.2
         ]
 
         for kind in AppPadGestureKind.allCases {

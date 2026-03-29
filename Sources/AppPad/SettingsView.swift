@@ -8,7 +8,7 @@ struct SettingsView: View {
     @AppStorage("gestureSensitivity") private var gestureSensitivity: Double = 0.5
     @AppStorage("backgroundColorHex") private var backgroundColorHex: String = "#9a6262ff"
     @AppStorage("backgroundOpacity") private var backgroundOpacity: Double = 0.85
-    @AppStorage("animationSpeed") private var animationSpeed: Double = 0.3
+    @AppStorage("animationSpeed") private var animationSpeed: Double = 0.2
     @AppStorage("globalShortcutEnabled") private var globalShortcutEnabled: Bool = true
     @AppStorage(AppHotkey.keyCodeDefaultsKey) private var globalShortcutKeyCode: Int = Int(AppHotkey.default.keyCode)
     @AppStorage(AppHotkey.modifiersDefaultsKey) private var globalShortcutModifiers: Int = Int(AppHotkey.default.modifiers)
@@ -212,7 +212,7 @@ struct SettingsView: View {
                             }
                         }
 
-                        Text("仅在 AppPad 已打开且处于前台时生效。左右滑默认翻页，下滑和向内捏合默认关闭。")
+                        Text("仅在 AppPad 已打开且处于前台时生效。默认左滑上一页、右滑下一页、下滑关闭，其余手势默认无动作。")
                             .font(.caption)
                             .foregroundColor(Color(nsColor: .tertiaryLabelColor))
                             .padding(.leading, labelWidth + 8)
@@ -334,13 +334,13 @@ struct SettingsView: View {
                 SettingsSectionView(title: "关于") {
                     VStack(spacing: 12) {
                         SettingsRowView(label: "版本", labelWidth: labelWidth) {
-                            Text("1.0.0")
+                            Text("1.0.3")
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
                         
                         SettingsRowView(label: "构建日期", labelWidth: labelWidth) {
-                            Text("2026.02.04")
+                            Text("2026.03.29")
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
@@ -388,7 +388,7 @@ struct SettingsView: View {
         backgroundColorHex = "#8e5252ff"
         selectedColor = Color(hex: "#8e5252ff")
         backgroundOpacity = 0.85
-        animationSpeed = 0.3
+        animationSpeed = 0.2
         globalShortcutEnabled = true
         launchAtLogin = false
         shortcutBinding.wrappedValue = .default

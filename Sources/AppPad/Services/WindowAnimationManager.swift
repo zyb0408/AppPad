@@ -7,6 +7,10 @@ final class WindowAnimationManager: @unchecked Sendable {
 
     private init() {}
 
+    private var animationDuration: TimeInterval {
+        max(UserDefaults.standard.object(forKey: "animationSpeed") as? Double ?? 0.2, 0.1)
+    }
+
     func showWindow(_ window: NSWindow, completion: (@Sendable () -> Void)? = nil) {
         guard !window.isVisible else {
             completion?()
@@ -38,7 +42,7 @@ final class WindowAnimationManager: @unchecked Sendable {
         NSApp.activate(ignoringOtherApps: true)
 
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.3
+            context.duration = animationDuration
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             window.animator().setFrame(screenFrame, display: true)
             window.animator().alphaValue = 1.0
@@ -72,7 +76,7 @@ final class WindowAnimationManager: @unchecked Sendable {
         )
 
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.25
+            context.duration = animationDuration
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             window.animator().setFrame(targetFrame, display: true)
             window.animator().alphaValue = 0.0
