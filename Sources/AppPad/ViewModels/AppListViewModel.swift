@@ -36,27 +36,33 @@ class AppListViewModel: ObservableObject {
     // MARK: - Search / Filter
 
     private func filterApps(_ text: String) {
-        guard !text.isEmpty else {
+        let normalizedQuery = text.normalizedSearchText()
+
+        guard !normalizedQuery.isEmpty else {
             rebuildGridItems()
             return
         }
 
-        let lowerText = text.lowercased()
-
         // Search mode: search ALL apps including those in folders
         let allApps = allAppsFlat()
         let matched = allApps.filter { app in
-            if app.name.lowercased().contains(lowerText) {
-                return true
+            for candidate in [app.name] + app.searchAliases {
+                let normalizedCandidate = candidate.normalizedSearchText()
+                if normalizedCandidate.contains(normalizedQuery) {
+                    return true
+                }
+
+                let pinyin = candidate.transformToPinyin()
+                if pinyin.contains(normalizedQuery) {
+                    return true
+                }
+
+                let initials = candidate.transformToPinyinInitials()
+                if initials.contains(normalizedQuery) {
+                    return true
+                }
             }
-            let pinyin = app.name.transformToPinyin()
-            if pinyin.contains(lowerText) {
-                return true
-            }
-            let initials = app.name.transformToPinyinInitials()
-            if initials.contains(lowerText) {
-                return true
-            }
+
             return false
         }
 
@@ -194,9 +200,12 @@ class AppListViewModel: ObservableObject {
             let scannedAppMap = Dictionary(uniqueKeysWithValues: scannedApps.map { ($0.bundleIdentifier, $0) })
             for i in apps.indices {
                 if let updated = scannedAppMap[apps[i].bundleIdentifier] {
-                    if apps[i].name != updated.name || apps[i].iconPath != updated.iconPath {
+                    if apps[i].name != updated.name ||
+                        apps[i].iconPath != updated.iconPath ||
+                        apps[i].searchAliases != updated.searchAliases {
                         apps[i].name = updated.name
                         apps[i].iconPath = updated.iconPath
+                        apps[i].searchAliases = updated.searchAliases
                         hasChanges = true
                     }
                 }
@@ -204,9 +213,12 @@ class AppListViewModel: ObservableObject {
             for i in folders.indices {
                 for j in folders[i].appIcons.indices {
                     if let updated = scannedAppMap[folders[i].appIcons[j].bundleIdentifier] {
-                        if folders[i].appIcons[j].name != updated.name || folders[i].appIcons[j].iconPath != updated.iconPath {
+                        if folders[i].appIcons[j].name != updated.name ||
+                            folders[i].appIcons[j].iconPath != updated.iconPath ||
+                            folders[i].appIcons[j].searchAliases != updated.searchAliases {
                             folders[i].appIcons[j].name = updated.name
                             folders[i].appIcons[j].iconPath = updated.iconPath
+                            folders[i].appIcons[j].searchAliases = updated.searchAliases
                             hasChanges = true
                         }
                     }
@@ -337,6 +349,13 @@ class AppListViewModel: ObservableObject {
     func getOpenFolder() -> Folder? {
         guard let id = openFolderId else { return nil }
         return folders.first { $0.id == id }
+    }
+
+    func resetSearchSession() {
+        searchText = ""
+        isEditMode = false
+        openFolderId = nil
+        draggedIcon = nil
     }
 
     // MARK: - Drag & Drop
@@ -524,11 +543,18 @@ class AppListViewModel: ObservableObject {
 // MARK: - String Extensions
 
 extension String {
+    func normalizedSearchText() -> String {
+        folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: .current)
+            .lowercased()
+            .components(separatedBy: .whitespacesAndNewlines)
+            .joined()
+    }
+
     func transformToPinyin() -> String {
         let stringRef = NSMutableString(string: self) as CFMutableString
         CFStringTransform(stringRef, nil, kCFStringTransformToLatin, false)
         CFStringTransform(stringRef, nil, kCFStringTransformStripDiacritics, false)
-        return (stringRef as String).lowercased().replacingOccurrences(of: " ", with: "")
+        return (stringRef as String).normalizedSearchText()
     }
 
     func transformToPinyinInitials() -> String {
@@ -538,6 +564,6 @@ extension String {
         let pinyin = (stringRef as String)
 
         let initials = pinyin.components(separatedBy: " ").compactMap { $0.first }.map { String($0) }
-        return initials.joined().lowercased()
+        return initials.joined().normalizedSearchText()
     }
 }

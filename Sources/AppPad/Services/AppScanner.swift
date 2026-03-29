@@ -1,6 +1,5 @@
 import Foundation
 import AppKit
-import CoreServices
 
 /// A service to scan for installed applications on macOS.
 /// It uses NSMetadataQuery to perform a system-wide Spotlight search for applications.
@@ -20,28 +19,45 @@ actor AppScanner {
                 guard item.hasSuffix(".app") else { continue }
                 
                 let fullPath = (path as NSString).appendingPathComponent(item)
+                let appURL = URL(fileURLWithPath: fullPath)
                 guard let bundle = Bundle(path: fullPath),
                       let bundleId = bundle.bundleIdentifier else { continue }
                 
-                // Get Display Name with localization support
                 let info = bundle.infoDictionary
                 let localizedInfo = bundle.localizedInfoDictionary
-                
-                // Priority: 
-                // 1. Localized CFBundleDisplayName (for Chinese names)
-                // 2. CFBundleDisplayName
-                // 3. Localized CFBundleName
-                // 4. CFBundleName
-                // 5. File name
-                let name = (localizedInfo?["CFBundleDisplayName"] as? String) ??
-                           (info?["CFBundleDisplayName"] as? String) ??
-                           (localizedInfo?["CFBundleName"] as? String) ??
-                           (info?["CFBundleName"] as? String) ??
-                           (item as NSString).deletingPathExtension
+                let fileName = (item as NSString).deletingPathExtension
+                let localizedFileName = fileManager.displayName(atPath: fullPath)
+                let localizedResourceValues = try? appURL.resourceValues(forKeys: [.localizedNameKey])
+                let localizedResourceName = localizedResourceValues?.localizedName
+                let nameCandidates = [
+                    localizedResourceName,
+                    localizedFileName,
+                    localizedInfo?["CFBundleDisplayName"] as? String,
+                    localizedInfo?["CFBundleName"] as? String,
+                    info?["CFBundleDisplayName"] as? String,
+                    info?["CFBundleName"] as? String,
+                    fileName
+                ]
+
+                let displayName = nameCandidates
+                    .compactMap(Self.trimmedName)
+                    .first ?? fileName
+
+                let searchAliases = Self.uniqueNames(from: [
+                    localizedResourceName,
+                    localizedFileName,
+                    localizedInfo?["CFBundleDisplayName"] as? String,
+                    localizedInfo?["CFBundleName"] as? String,
+                    info?["CFBundleDisplayName"] as? String,
+                    info?["CFBundleName"] as? String,
+                    fileName,
+                    bundleId.components(separatedBy: ".").last
+                ])
                 
                 let appIcon = AppIcon(
                     id: UUID(),
-                    name: name,
+                    name: displayName,
+                    searchAliases: searchAliases,
                     bundleIdentifier: bundleId,
                     iconPath: fullPath,
                     position: apps.count,
@@ -56,5 +72,25 @@ actor AppScanner {
         apps.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         
         return apps
+    }
+
+    private static func uniqueNames(from candidates: [String?]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+
+        for candidate in candidates {
+            guard let value = trimmedName(candidate) else { continue }
+            let key = value.normalizedSearchText()
+            guard !key.isEmpty, seen.insert(key).inserted else { continue }
+            result.append(value)
+        }
+
+        return result
+    }
+
+    private static func trimmedName(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

@@ -3,6 +3,7 @@ import Foundation
 struct AppIcon: Identifiable, Codable, Equatable, Hashable {
     let id: UUID
     var name: String
+    var searchAliases: [String]
     let bundleIdentifier: String
     var iconPath: String
     var position: Int
@@ -14,6 +15,24 @@ struct AppIcon: Identifiable, Codable, Equatable, Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        searchAliases: [String] = [],
+        bundleIdentifier: String,
+        iconPath: String,
+        position: Int,
+        folderId: UUID? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.searchAliases = searchAliases
+        self.bundleIdentifier = bundleIdentifier
+        self.iconPath = iconPath
+        self.position = position
+        self.folderId = folderId
     }
 }
 

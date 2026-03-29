@@ -27,6 +27,7 @@ final class AppIconEntity {
         return AppIcon(
             id: UUID(), // Generate new UUID each time for SwiftUI
             name: name,
+            searchAliases: [],
             bundleIdentifier: bundleIdentifier,
             iconPath: iconPath,
             position: position,

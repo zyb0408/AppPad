@@ -124,23 +124,38 @@ struct SearchBarView: View {
                 )
         )
         .onAppear {
-            // Auto-focus when view appears
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isFocused = true
-            }
+            requestFocus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .appPadFocusSearchField)) { _ in
+            requestFocus()
+        }
+        .onChange(of: isFocused) { _, newValue in
+            SearchBarView.searchFieldFocused = newValue
+        }
+        .onDisappear {
+            SearchBarView.searchFieldFocused = false
         }
     }
-    
-    // Static methods for compatibility (now control FocusState)
-    static var _focusBinding: Binding<Bool>?
-    
+
+    private func requestFocus() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            isFocused = true
+        }
+    }
+
+    private static var searchFieldFocused = false
+
     static func focusSearchField() {
         DispatchQueue.main.async {
-            _focusBinding?.wrappedValue = true
+            NotificationCenter.default.post(name: .appPadFocusSearchField, object: nil)
         }
     }
-    
+
     static var isSearchFieldFocused: Bool {
-        _focusBinding?.wrappedValue ?? false
+        searchFieldFocused
     }
+}
+
+extension Notification.Name {
+    static let appPadFocusSearchField = Notification.Name("appPadFocusSearchField")
 }

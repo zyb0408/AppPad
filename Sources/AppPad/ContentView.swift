@@ -4,6 +4,7 @@ import SwiftData
 struct ContentView: View {
     @StateObject private var viewModel = AppListViewModel()
     @State private var currentPage = 0
+    @State private var searchSessionID = UUID()
 
     @AppStorage("gridColumns") private var gridColumns: Int = 7
     @AppStorage("gridRows") private var gridRows: Int = 5
@@ -34,6 +35,7 @@ struct ContentView: View {
                     SearchBarView(text: $viewModel.searchText) {
                         viewModel.openFirstSearchResult()
                     }
+                    .id(searchSessionID)
                     .frame(width: 260)
                     .padding(.top, 50)
                     .padding(.bottom, 10)
@@ -99,9 +101,7 @@ struct ContentView: View {
                 queue: .main
             ) { _ in
                 Task { @MainActor in
-                    viewModel.searchText = ""
-                    viewModel.isEditMode = false
-                    viewModel.closeFolder()
+                    resetSearchSession()
                 }
             }
 
@@ -112,6 +112,7 @@ struct ContentView: View {
                 queue: .main
             ) { _ in
                 Task { @MainActor in
+                    resetSearchSession()
                     // Refresh app list to detect newly installed/removed apps
                     viewModel.refreshApps()
                     SearchBarView.focusSearchField()
@@ -186,6 +187,13 @@ struct ContentView: View {
             return nil
         }
 
+        // Backspace/Delete fallback when type-anywhere search started before focus fully moved
+        if event.keyCode == 51 && !SearchBarView.isSearchFieldFocused && !viewModel.searchText.isEmpty {
+            viewModel.searchText.removeLast()
+            SearchBarView.focusSearchField()
+            return nil
+        }
+
         // Type-anywhere: auto-focus search field on printable characters
         if let chars = event.characters, !chars.isEmpty {
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
@@ -206,6 +214,12 @@ struct ContentView: View {
         }
 
         return event
+    }
+
+    private func resetSearchSession() {
+        viewModel.resetSearchSession()
+        currentPage = 0
+        searchSessionID = UUID()
     }
 }
 
