@@ -64,33 +64,21 @@ struct ContentView: View {
             viewModel.setModelContext(modelContext)
             viewModel.loadApps()
 
-            // Listen for swipe gestures
+            // Listen for interface gesture actions
             NotificationCenter.default.addObserver(
-                forName: .swipeLeft,
+                forName: .appPadGestureActionTriggered,
                 object: nil,
                 queue: .main
-            ) { _ in
-                Task { @MainActor in
-                    if currentPage > 0 {
-                        withAnimation(.easeOut(duration: 0.3)) {
-                            currentPage -= 1
-                        }
-                    }
+            ) { notification in
+                guard
+                    let actionRawValue = notification.userInfo?[AppPadInputSettings.gestureActionUserInfoKey] as? String,
+                    let action = AppPadGestureAction(rawValue: actionRawValue)
+                else {
+                    return
                 }
-            }
 
-            NotificationCenter.default.addObserver(
-                forName: .swipeRight,
-                object: nil,
-                queue: .main
-            ) { _ in
                 Task { @MainActor in
-                    let pages = viewModel.gridItems.chunked(into: gridColumns * gridRows)
-                    if currentPage < pages.count - 1 {
-                        withAnimation(.easeOut(duration: 0.3)) {
-                            currentPage += 1
-                        }
-                    }
+                    performGestureAction(action)
                 }
             }
 
@@ -220,6 +208,28 @@ struct ContentView: View {
         viewModel.resetSearchSession()
         currentPage = 0
         searchSessionID = UUID()
+    }
+
+    private func performGestureAction(_ action: AppPadGestureAction) {
+        switch action {
+        case .none:
+            break
+        case .nextPage:
+            let pages = viewModel.gridItems.chunked(into: gridColumns * gridRows)
+            guard currentPage < pages.count - 1 else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
+                currentPage += 1
+            }
+        case .previousPage:
+            guard currentPage > 0 else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
+                currentPage -= 1
+            }
+        case .closeAppPad:
+            if let window = NSApp.keyWindow {
+                WindowAnimationManager.shared.hideWindow(window)
+            }
+        }
     }
 }
 

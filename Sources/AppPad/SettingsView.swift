@@ -13,6 +13,16 @@ struct SettingsView: View {
     @AppStorage(AppHotkey.keyCodeDefaultsKey) private var globalShortcutKeyCode: Int = Int(AppHotkey.default.keyCode)
     @AppStorage(AppHotkey.modifiersDefaultsKey) private var globalShortcutModifiers: Int = Int(AppHotkey.default.modifiers)
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
+    @AppStorage(AppPadInputSettings.gesturesEnabledDefaultsKey) private var interfaceGesturesEnabled: Bool = true
+    @AppStorage(AppPadInputSettings.hotCornerEnabledDefaultsKey) private var hotCornerEnabled: Bool = false
+    @AppStorage(AppPadInputSettings.hotCornerPositionDefaultsKey) private var hotCornerPositionRaw: String = AppPadHotCorner.bottomLeft.rawValue
+    @AppStorage(AppPadInputSettings.hotCornerActionDefaultsKey) private var hotCornerActionRaw: String = AppPadHotCornerAction.toggleAppPad.rawValue
+    @AppStorage("gestureAction_swipeLeft") private var swipeLeftActionRaw: String = AppPadGestureKind.swipeLeft.defaultAction.rawValue
+    @AppStorage("gestureAction_swipeRight") private var swipeRightActionRaw: String = AppPadGestureKind.swipeRight.defaultAction.rawValue
+    @AppStorage("gestureAction_swipeUp") private var swipeUpActionRaw: String = AppPadGestureKind.swipeUp.defaultAction.rawValue
+    @AppStorage("gestureAction_swipeDown") private var swipeDownActionRaw: String = AppPadGestureKind.swipeDown.defaultAction.rawValue
+    @AppStorage("gestureAction_magnifyIn") private var magnifyInActionRaw: String = AppPadGestureKind.magnifyIn.defaultAction.rawValue
+    @AppStorage("gestureAction_magnifyOut") private var magnifyOutActionRaw: String = AppPadGestureKind.magnifyOut.defaultAction.rawValue
     
     @State private var selectedColor: Color = Color(hex: "#a94040ff")
     @State private var launchAtLoginError: String?
@@ -69,6 +79,15 @@ struct SettingsView: View {
         .onChange(of: launchAtLogin) { _, newValue in
             guard didSyncLaunchAtLoginState else { return }
             updateLaunchAtLogin(newValue)
+        }
+        .onChange(of: hotCornerEnabled) { _, _ in
+            HotCornerManager.shared.reloadConfiguration()
+        }
+        .onChange(of: hotCornerPositionRaw) { _, _ in
+            HotCornerManager.shared.reloadConfiguration()
+        }
+        .onChange(of: hotCornerActionRaw) { _, _ in
+            HotCornerManager.shared.reloadConfiguration()
         }
     }
     
@@ -161,9 +180,16 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // 手势
-                SettingsSectionView(title: "手势") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        SettingsRowView(label: "滑动冷却", labelWidth: labelWidth) {
+                SettingsSectionView(title: "界面手势") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SettingsRowView(label: "启用手势", labelWidth: labelWidth) {
+                            Toggle("", isOn: $interfaceGesturesEnabled)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                            Spacer()
+                        }
+
+                        SettingsRowView(label: "手势冷却", labelWidth: labelWidth) {
                             HStack(spacing: 12) {
                                 Slider(value: $gestureSensitivity, in: 0.1...1.5, step: 0.1)
                                 Text("\(String(format: "%.1f", gestureSensitivity)) 秒")
@@ -172,7 +198,61 @@ struct SettingsView: View {
                                     .frame(width: 60, alignment: .trailing)
                             }
                         }
-                        Text("翻页之间的最小时间间隔")
+                        ForEach(AppPadGestureKind.allCases) { gesture in
+                            SettingsRowView(label: gesture.displayName, labelWidth: labelWidth) {
+                                Picker("", selection: gestureBinding(for: gesture)) {
+                                    ForEach(AppPadGestureAction.allCases) { action in
+                                        Text(action.displayName).tag(action)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 180, alignment: .leading)
+                                .disabled(!interfaceGesturesEnabled)
+                                Spacer()
+                            }
+                        }
+
+                        Text("仅在 AppPad 已打开且处于前台时生效。左右滑默认翻页，下滑和向内捏合默认关闭。")
+                            .font(.caption)
+                            .foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                            .padding(.leading, labelWidth + 8)
+                    }
+                }
+
+                SettingsSectionView(title: "热角") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SettingsRowView(label: "启用热角", labelWidth: labelWidth) {
+                            Toggle("", isOn: $hotCornerEnabled)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                            Spacer()
+                        }
+
+                        SettingsRowView(label: "角落位置", labelWidth: labelWidth) {
+                            Picker("", selection: hotCornerBinding) {
+                                ForEach(AppPadHotCorner.allCases) { corner in
+                                    Text(corner.displayName).tag(corner)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 180, alignment: .leading)
+                            .disabled(!hotCornerEnabled)
+                            Spacer()
+                        }
+
+                        SettingsRowView(label: "触发动作", labelWidth: labelWidth) {
+                            Picker("", selection: hotCornerActionBinding) {
+                                ForEach(AppPadHotCornerAction.allCases) { action in
+                                    Text(action.displayName).tag(action)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 180, alignment: .leading)
+                            .disabled(!hotCornerEnabled)
+                            Spacer()
+                        }
+
+                        Text("热角在 AppPad 后台常驻时也能触发。如果和你平时的角落操作习惯冲突，可以随时关闭。")
                             .font(.caption)
                             .foregroundColor(Color(nsColor: .tertiaryLabelColor))
                             .padding(.leading, labelWidth + 8)
@@ -295,6 +375,16 @@ struct SettingsView: View {
         gridColumns = 7
         gridRows = 5
         gestureSensitivity = 0.5
+        interfaceGesturesEnabled = true
+        hotCornerEnabled = false
+        hotCornerPositionRaw = AppPadHotCorner.bottomLeft.rawValue
+        hotCornerActionRaw = AppPadHotCornerAction.toggleAppPad.rawValue
+        swipeLeftActionRaw = AppPadGestureKind.swipeLeft.defaultAction.rawValue
+        swipeRightActionRaw = AppPadGestureKind.swipeRight.defaultAction.rawValue
+        swipeUpActionRaw = AppPadGestureKind.swipeUp.defaultAction.rawValue
+        swipeDownActionRaw = AppPadGestureKind.swipeDown.defaultAction.rawValue
+        magnifyInActionRaw = AppPadGestureKind.magnifyIn.defaultAction.rawValue
+        magnifyOutActionRaw = AppPadGestureKind.magnifyOut.defaultAction.rawValue
         backgroundColorHex = "#8e5252ff"
         selectedColor = Color(hex: "#8e5252ff")
         backgroundOpacity = 0.85
@@ -304,6 +394,7 @@ struct SettingsView: View {
         shortcutBinding.wrappedValue = .default
         hotkeyHint = "已恢复为默认快捷键"
         GlobalHotkeyManager.shared.reloadRegistration()
+        HotCornerManager.shared.reloadConfiguration()
         updateLaunchAtLogin(false)
     }
 
@@ -314,6 +405,65 @@ struct SettingsView: View {
         } catch {
             launchAtLoginError = "登录项更新失败：\(error.localizedDescription)"
             launchAtLogin = LaunchAtLoginManager.shared.isEnabled
+        }
+    }
+
+    private var hotCornerBinding: Binding<AppPadHotCorner> {
+        Binding(
+            get: { AppPadHotCorner(rawValue: hotCornerPositionRaw) ?? .bottomLeft },
+            set: { hotCornerPositionRaw = $0.rawValue }
+        )
+    }
+
+    private var hotCornerActionBinding: Binding<AppPadHotCornerAction> {
+        Binding(
+            get: { AppPadHotCornerAction(rawValue: hotCornerActionRaw) ?? .toggleAppPad },
+            set: { hotCornerActionRaw = $0.rawValue }
+        )
+    }
+
+    private func gestureBinding(for kind: AppPadGestureKind) -> Binding<AppPadGestureAction> {
+        Binding(
+            get: {
+                AppPadGestureAction(rawValue: gestureActionRawValue(for: kind)) ?? kind.defaultAction
+            },
+            set: { newValue in
+                setGestureActionRawValue(newValue.rawValue, for: kind)
+            }
+        )
+    }
+
+    private func gestureActionRawValue(for kind: AppPadGestureKind) -> String {
+        switch kind {
+        case .swipeLeft:
+            return swipeLeftActionRaw
+        case .swipeRight:
+            return swipeRightActionRaw
+        case .swipeUp:
+            return swipeUpActionRaw
+        case .swipeDown:
+            return swipeDownActionRaw
+        case .magnifyIn:
+            return magnifyInActionRaw
+        case .magnifyOut:
+            return magnifyOutActionRaw
+        }
+    }
+
+    private func setGestureActionRawValue(_ value: String, for kind: AppPadGestureKind) {
+        switch kind {
+        case .swipeLeft:
+            swipeLeftActionRaw = value
+        case .swipeRight:
+            swipeRightActionRaw = value
+        case .swipeUp:
+            swipeUpActionRaw = value
+        case .swipeDown:
+            swipeDownActionRaw = value
+        case .magnifyIn:
+            magnifyInActionRaw = value
+        case .magnifyOut:
+            magnifyOutActionRaw = value
         }
     }
 }

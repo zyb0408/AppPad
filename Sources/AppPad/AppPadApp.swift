@@ -47,6 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppPadInputSettings.registerDefaults()
         let container = createModelContainer()
 
         let screenRect = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1000, height: 800)
@@ -78,6 +79,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.toggleWindow()
             }
         }
+
+        HotCornerManager.shared.configure { [weak self] action in
+            Task { @MainActor in
+                self?.performHotCornerAction(action)
+            }
+        }
     }
 
     @MainActor
@@ -92,5 +99,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindowController = SettingsWindowController()
         }
         settingsWindowController?.showWindow(nil)
+    }
+
+    @MainActor
+    private func performHotCornerAction(_ action: AppPadHotCornerAction) {
+        guard let window = mainWindow else { return }
+
+        switch action {
+        case .toggleAppPad:
+            WindowAnimationManager.shared.toggleWindow(window)
+        case .openAppPad:
+            if !window.isVisible {
+                WindowAnimationManager.shared.showWindow(window)
+            }
+        case .closeAppPad:
+            if window.isVisible {
+                WindowAnimationManager.shared.hideWindow(window)
+            }
+        }
     }
 }
