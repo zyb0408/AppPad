@@ -10,6 +10,8 @@ class AppListViewModel: ObservableObject {
     @Published var gridItems: [GridItem] = []
     @Published var isLoading = false
     @Published var searchText = ""
+    @Published var pendingDeletionApp: AppIcon?
+    @Published var deletionError: AppDeletionError?
 
     // Edit & drag state
     @Published var isEditMode = false
@@ -369,12 +371,31 @@ class AppListViewModel: ObservableObject {
         draggedIcon = nil
     }
 
-    func hideApp(_ app: AppIcon) {
-        hiddenBundleIdentifiers.insert(app.bundleIdentifier)
-        removeAppFromVisibleCollections(app)
-        reindexPositions()
-        rebuildGridItems()
-        saveToPersistence()
+    func requestDeleteApp(_ app: AppIcon) {
+        pendingDeletionApp = app
+    }
+
+    func cancelDeleteApp() {
+        pendingDeletionApp = nil
+    }
+
+    func clearDeletionError() {
+        deletionError = nil
+    }
+
+    func confirmDeleteApp() {
+        guard let app = pendingDeletionApp else { return }
+        pendingDeletionApp = nil
+
+        do {
+            try deleteAppFromDisk(app)
+            finalizeDeletedApp(app)
+        } catch {
+            deletionError = AppDeletionError(
+                appName: app.name,
+                message: deletionFailureMessage(for: app, error: error)
+            )
+        }
     }
 
     // MARK: - Drag & Drop
@@ -628,6 +649,68 @@ class AppListViewModel: ObservableObject {
 
         for folderIndex in foldersToDissolve.reversed() {
             dissolveFolder(at: folderIndex)
+        }
+    }
+
+    private func finalizeDeletedApp(_ app: AppIcon) {
+        hiddenBundleIdentifiers.remove(app.bundleIdentifier)
+        removeAppFromVisibleCollections(app)
+        reindexPositions()
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
+    private func deleteAppFromDisk(_ app: AppIcon) throws {
+        let appURL = URL(fileURLWithPath: app.iconPath)
+        let standardizedPath = appURL.standardizedFileURL.path
+
+        if standardizedPath.hasPrefix("/System/Applications/") || standardizedPath.hasPrefix("/System/Library/") {
+            throw AppDeletionOperationError.systemProtectedApp
+        }
+
+        var trashedURL: NSURL?
+        try FileManager.default.trashItem(at: appURL, resultingItemURL: &trashedURL)
+    }
+
+    private func deletionFailureMessage(for app: AppIcon, error: Error) -> String {
+        if let error = error as? AppDeletionOperationError {
+            switch error {
+            case .systemProtectedApp:
+                return "\(app.name) 位于系统保护目录中，不能由 AppPad 直接删除。请在 Finder 中确认它是否属于系统应用。"
+            }
+        }
+
+        let nsError = error as NSError
+        let noPermissionCodes = [NSFileWriteNoPermissionError, NSFileWriteUnknownError]
+        let isPermissionIssue = nsError.domain == NSCocoaErrorDomain && noPermissionCodes.contains(nsError.code)
+        let isPosixPermissionIssue = nsError.domain == NSPOSIXErrorDomain && [1, 13].contains(nsError.code)
+
+        if isPermissionIssue || isPosixPermissionIssue {
+            return "AppPad 无法将 \(app.name) 移到废纸篓。请打开 Finder 的“应用程序”文件夹手动删除；如果系统弹出认证窗口，请输入管理员密码后再试。"
+        }
+
+        let details = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if details.isEmpty {
+            return "删除 \(app.name) 失败。请在 Finder 中手动将它移到废纸篓。"
+        }
+
+        return "删除 \(app.name) 失败：\(details)\n请在 Finder 中手动将它移到废纸篓。"
+    }
+}
+
+struct AppDeletionError: Identifiable {
+    let id = UUID()
+    let appName: String
+    let message: String
+}
+
+enum AppDeletionOperationError: LocalizedError {
+    case systemProtectedApp
+
+    var errorDescription: String? {
+        switch self {
+        case .systemProtectedApp:
+            return "系统保护应用无法直接删除。"
         }
     }
 }

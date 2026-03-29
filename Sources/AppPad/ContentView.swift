@@ -120,6 +120,34 @@ struct ContentView: View {
                 }
             }
         }
+        .alert(
+            "删除应用",
+            isPresented: Binding(
+                get: { viewModel.pendingDeletionApp != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        viewModel.cancelDeleteApp()
+                    }
+                }
+            ),
+            presenting: viewModel.pendingDeletionApp
+        ) { app in
+            Button("取消", role: .cancel) {
+                viewModel.cancelDeleteApp()
+            }
+            Button("移到废纸篓", role: .destructive) {
+                viewModel.confirmDeleteApp()
+            }
+        } message: { app in
+            Text("确定要删除“\(app.name)”吗？\n\nAppPad 会尝试把这个应用从“应用程序”目录移到废纸篓。这个操作可能需要系统权限。")
+        }
+        .alert("无法删除应用", isPresented: deletionErrorPresented) {
+            Button("知道了") {
+                viewModel.clearDeletionError()
+            }
+        } message: {
+            Text(viewModel.deletionError?.message ?? "")
+        }
     }
 
     private func handleBackgroundTap() {
@@ -230,6 +258,17 @@ struct ContentView: View {
                 WindowAnimationManager.shared.hideWindow(window)
             }
         }
+    }
+
+    private var deletionErrorPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.deletionError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearDeletionError()
+                }
+            }
+        )
     }
 }
 
