@@ -1,5 +1,5 @@
-import SwiftUI
 import Carbon
+import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("iconSize") private var iconSize: Double = 80.0
@@ -10,25 +10,37 @@ struct SettingsView: View {
     @AppStorage("backgroundOpacity") private var backgroundOpacity: Double = 0.85
     @AppStorage("animationSpeed") private var animationSpeed: Double = 0.2
     @AppStorage("globalShortcutEnabled") private var globalShortcutEnabled: Bool = true
-    @AppStorage(AppHotkey.keyCodeDefaultsKey) private var globalShortcutKeyCode: Int = Int(AppHotkey.default.keyCode)
-    @AppStorage(AppHotkey.modifiersDefaultsKey) private var globalShortcutModifiers: Int = Int(AppHotkey.default.modifiers)
+    @AppStorage(AppHotkey.keyCodeDefaultsKey) private var globalShortcutKeyCode: Int = Int(
+        AppHotkey.default.keyCode)
+    @AppStorage(AppHotkey.modifiersDefaultsKey) private var globalShortcutModifiers: Int = Int(
+        AppHotkey.default.modifiers)
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
-    @AppStorage(AppPadInputSettings.gesturesEnabledDefaultsKey) private var interfaceGesturesEnabled: Bool = true
-    @AppStorage(AppPadInputSettings.hotCornerEnabledDefaultsKey) private var hotCornerEnabled: Bool = false
-    @AppStorage(AppPadInputSettings.hotCornerPositionDefaultsKey) private var hotCornerPositionRaw: String = AppPadHotCorner.bottomLeft.rawValue
-    @AppStorage(AppPadInputSettings.hotCornerActionDefaultsKey) private var hotCornerActionRaw: String = AppPadHotCornerAction.toggleAppPad.rawValue
-    @AppStorage("gestureAction_swipeLeft") private var swipeLeftActionRaw: String = AppPadGestureKind.swipeLeft.defaultAction.rawValue
-    @AppStorage("gestureAction_swipeRight") private var swipeRightActionRaw: String = AppPadGestureKind.swipeRight.defaultAction.rawValue
-    @AppStorage("gestureAction_swipeUp") private var swipeUpActionRaw: String = AppPadGestureKind.swipeUp.defaultAction.rawValue
-    @AppStorage("gestureAction_swipeDown") private var swipeDownActionRaw: String = AppPadGestureKind.swipeDown.defaultAction.rawValue
-    @AppStorage("gestureAction_magnifyIn") private var magnifyInActionRaw: String = AppPadGestureKind.magnifyIn.defaultAction.rawValue
-    @AppStorage("gestureAction_magnifyOut") private var magnifyOutActionRaw: String = AppPadGestureKind.magnifyOut.defaultAction.rawValue
-    
+    @AppStorage(AppPadInputSettings.gesturesEnabledDefaultsKey) private
+        var interfaceGesturesEnabled: Bool = true
+    @AppStorage(AppPadInputSettings.hotCornerEnabledDefaultsKey) private var hotCornerEnabled:
+        Bool = false
+    @AppStorage(AppPadInputSettings.hotCornerPositionDefaultsKey) private var hotCornerPositionRaw:
+        String = AppPadHotCorner.bottomLeft.rawValue
+    @AppStorage(AppPadInputSettings.hotCornerActionDefaultsKey) private var hotCornerActionRaw:
+        String = AppPadHotCornerAction.toggleAppPad.rawValue
+    @AppStorage("gestureAction_swipeLeft") private var swipeLeftActionRaw: String =
+        AppPadGestureKind.swipeLeft.defaultAction.rawValue
+    @AppStorage("gestureAction_swipeRight") private var swipeRightActionRaw: String =
+        AppPadGestureKind.swipeRight.defaultAction.rawValue
+    @AppStorage("gestureAction_swipeUp") private var swipeUpActionRaw: String = AppPadGestureKind
+        .swipeUp.defaultAction.rawValue
+    @AppStorage("gestureAction_swipeDown") private var swipeDownActionRaw: String =
+        AppPadGestureKind.swipeDown.defaultAction.rawValue
+    @AppStorage("gestureAction_magnifyIn") private var magnifyInActionRaw: String =
+        AppPadGestureKind.magnifyIn.defaultAction.rawValue
+    @AppStorage("gestureAction_magnifyOut") private var magnifyOutActionRaw: String =
+        AppPadGestureKind.magnifyOut.defaultAction.rawValue
+
     @State private var selectedColor: Color = Color(hex: "#a94040ff")
     @State private var launchAtLoginError: String?
     @State private var hotkeyHint: String?
     @State private var didSyncLaunchAtLoginState = false
-    
+
     private let labelWidth: CGFloat = 100
 
     private var shortcutBinding: Binding<AppHotkey> {
@@ -45,7 +57,7 @@ struct SettingsView: View {
             }
         )
     }
-    
+
     var body: some View {
         TabView {
             // MARK: - 外观标签页
@@ -53,13 +65,13 @@ struct SettingsView: View {
                 .tabItem {
                     Label("外观", systemImage: "paintbrush")
                 }
-            
+
             // MARK: - 行为标签页
             behaviorTab
                 .tabItem {
                     Label("行为", systemImage: "hand.tap")
                 }
-            
+
             // MARK: - 通用标签页
             generalTab
                 .tabItem {
@@ -90,7 +102,7 @@ struct SettingsView: View {
             HotCornerManager.shared.reloadConfiguration()
         }
     }
-    
+
     // MARK: - 外观标签页
     private var appearanceTab: some View {
         ScrollView {
@@ -107,7 +119,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                
+
                 // 网格布局
                 SettingsSectionView(title: "网格布局") {
                     VStack(spacing: 12) {
@@ -121,7 +133,7 @@ struct SettingsView: View {
                             }
                             Spacer()
                         }
-                        
+
                         SettingsRowView(label: "行数", labelWidth: labelWidth) {
                             HStack {
                                 Stepper("\(gridRows)", value: $gridRows, in: 3...10)
@@ -132,10 +144,10 @@ struct SettingsView: View {
                             }
                             Spacer()
                         }
-                        
+
                         Divider()
                             .padding(.vertical, 4)
-                        
+
                         HStack {
                             Text("每页应用数")
                                 .foregroundColor(.secondary)
@@ -146,7 +158,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                
+
                 // 视觉效果
                 SettingsSectionView(title: "视觉效果") {
                     VStack(spacing: 12) {
@@ -158,7 +170,7 @@ struct SettingsView: View {
                                 }
                             Spacer()
                         }
-                        
+
                         SettingsRowView(label: "背景透明度", labelWidth: labelWidth) {
                             HStack(spacing: 12) {
                                 Slider(value: $backgroundOpacity, in: 0.0...1.0, step: 0.05)
@@ -174,7 +186,7 @@ struct SettingsView: View {
             .padding(24)
         }
     }
-    
+
     // MARK: - 行为标签页
     private var behaviorTab: some View {
         ScrollView {
@@ -258,7 +270,7 @@ struct SettingsView: View {
                             .padding(.leading, labelWidth + 8)
                     }
                 }
-                
+
                 // 动画
                 SettingsSectionView(title: "动画") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -277,7 +289,7 @@ struct SettingsView: View {
                             .padding(.leading, labelWidth + 8)
                     }
                 }
-                
+
                 // 快捷键
                 SettingsSectionView(title: "快捷键") {
                     VStack(spacing: 12) {
@@ -287,9 +299,11 @@ struct SettingsView: View {
                                 .toggleStyle(.switch)
                             Spacer()
                         }
-                        
+
                         SettingsRowView(label: "热键", labelWidth: labelWidth) {
-                            HotkeyRecorderView(hotkey: shortcutBinding, isEnabled: globalShortcutEnabled) { newHotkey in
+                            HotkeyRecorderView(
+                                hotkey: shortcutBinding, isEnabled: globalShortcutEnabled
+                            ) { newHotkey in
                                 shortcutBinding.wrappedValue = newHotkey
                                 hotkeyHint = "新的快捷键已生效"
                                 GlobalHotkeyManager.shared.reloadRegistration()
@@ -298,17 +312,20 @@ struct SettingsView: View {
                             Spacer()
                         }
 
-                        Text(globalShortcutEnabled ? (hotkeyHint ?? "点击后按下新的组合键，必须包含修饰键") : "启用后才会注册系统级快捷键")
-                            .font(.caption)
-                            .foregroundColor(Color(nsColor: .tertiaryLabelColor))
-                            .padding(.leading, labelWidth + 8)
+                        Text(
+                            globalShortcutEnabled
+                                ? (hotkeyHint ?? "点击后按下新的组合键，必须包含修饰键") : "启用后才会注册系统级快捷键"
+                        )
+                        .font(.caption)
+                        .foregroundColor(Color(nsColor: .tertiaryLabelColor))
+                        .padding(.leading, labelWidth + 8)
                     }
                 }
             }
             .padding(24)
         }
     }
-    
+
     // MARK: - 通用标签页
     private var generalTab: some View {
         ScrollView {
@@ -325,36 +342,39 @@ struct SettingsView: View {
 
                         Text(launchAtLoginError ?? "启用后会通过系统登录项自动启动 AppPad")
                             .font(.caption)
-                            .foregroundColor(launchAtLoginError == nil ? Color(nsColor: .tertiaryLabelColor) : .red)
+                            .foregroundColor(
+                                launchAtLoginError == nil
+                                    ? Color(nsColor: .tertiaryLabelColor) : .red
+                            )
                             .padding(.leading, labelWidth + 8)
                     }
                 }
-                
+
                 // 关于
                 SettingsSectionView(title: "关于") {
                     VStack(spacing: 12) {
                         SettingsRowView(label: "版本", labelWidth: labelWidth) {
-                            Text("1.0.3")
+                            Text("1.0.4")
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
-                        
+
                         SettingsRowView(label: "构建日期", labelWidth: labelWidth) {
                             Text("2026.03.29")
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
-                        
+
                         Divider()
                             .padding(.vertical, 4)
-                        
+
                         Text("AppPad 是一个具有增强自定义功能的 macOS Launchpad 替代品。")
                             .font(.callout)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                
+
                 // 重置
                 SettingsSectionView(title: "重置") {
                     Button(action: resetToDefaults) {
@@ -369,7 +389,7 @@ struct SettingsView: View {
             .padding(24)
         }
     }
-    
+
     private func resetToDefaults() {
         iconSize = 80.0
         gridColumns = 7
@@ -425,7 +445,8 @@ struct SettingsView: View {
     private func gestureBinding(for kind: AppPadGestureKind) -> Binding<AppPadGestureAction> {
         Binding(
             get: {
-                AppPadGestureAction(rawValue: gestureActionRawValue(for: kind)) ?? kind.defaultAction
+                AppPadGestureAction(rawValue: gestureActionRawValue(for: kind))
+                    ?? kind.defaultAction
             },
             set: { newValue in
                 setGestureActionRawValue(newValue.rawValue, for: kind)
@@ -472,13 +493,13 @@ struct SettingsView: View {
 struct SettingsSectionView<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(.primary)
-            
+
             VStack(alignment: .leading, spacing: 12) {
                 content
             }
@@ -500,12 +521,12 @@ struct SettingsRowView<Content: View>: View {
     let label: String
     let labelWidth: CGFloat
     @ViewBuilder let content: Content
-    
+
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             Text(label)
                 .frame(width: labelWidth, alignment: .trailing)
-            
+
             content
         }
     }
@@ -514,7 +535,7 @@ struct SettingsRowView<Content: View>: View {
 // MARK: - 按键帽视图
 struct KeyCapView: View {
     let key: String
-    
+
     var body: some View {
         Text(key)
             .font(.system(size: 12, weight: .medium, design: .rounded))
