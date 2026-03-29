@@ -59,7 +59,7 @@ ICNS_FILE="${APP_PATH}/Contents/Resources/AppIcon.icns"
 if [ -d "$ICON_SOURCE" ]; then
     echo -e "${YELLOW}正在生成应用图标...${NC}"
     mkdir -p "$ICONSET_DIR"
-    
+
     # 复制并重命名图标文件为 iconutil 需要的格式
     cp "${ICON_SOURCE}/icon_16x16.png" "${ICONSET_DIR}/icon_16x16.png" 2>/dev/null
     cp "${ICON_SOURCE}/icon_16x16@2x.png" "${ICONSET_DIR}/icon_16x16@2x.png" 2>/dev/null
@@ -71,10 +71,10 @@ if [ -d "$ICON_SOURCE" ]; then
     cp "${ICON_SOURCE}/icon_256x256@2x.png" "${ICONSET_DIR}/icon_256x256@2x.png" 2>/dev/null
     cp "${ICON_SOURCE}/icon_512x512.png" "${ICONSET_DIR}/icon_512x512.png" 2>/dev/null
     cp "${ICON_SOURCE}/icon_512x512@2x.png" "${ICONSET_DIR}/icon_512x512@2x.png" 2>/dev/null
-    
+
     # 使用 iconutil 生成 .icns 文件
     iconutil -c icns "$ICONSET_DIR" -o "$ICNS_FILE" 2>/dev/null
-    
+
     if [ -f "$ICNS_FILE" ]; then
         echo -e "${GREEN}应用图标生成成功${NC}"
         ICON_PLIST_ENTRY="    <key>CFBundleIconFile</key>
@@ -101,9 +101,9 @@ cat > "${APP_PATH}/Contents/Info.plist" <<EOF
     <key>CFBundleName</key>
     <string>${APP_NAME}</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.3</string>
+    <string>1.0.4</string>
     <key>CFBundleVersion</key>
-    <string>1.0.3</string>
+    <string>1.0.4</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
