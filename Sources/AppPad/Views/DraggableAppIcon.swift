@@ -7,6 +7,7 @@ struct DraggableAppIcon: View {
     @Binding var draggedIcon: AppIcon?
     @Binding var isEditMode: Bool
     var onLaunch: () -> Void
+    var onHide: () -> Void
     var onDrop: (AppIcon, AppIcon) -> Void
 
     @State private var iconImage: NSImage?
@@ -42,9 +43,7 @@ struct DraggableAppIcon: View {
             }
             .overlay(alignment: .topTrailing) {
                 if isEditMode {
-                    Button(action: {
-                        // Hide app (could be implemented later)
-                    }) {
+                    Button(action: onHide) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 20))
                             .foregroundColor(.white)

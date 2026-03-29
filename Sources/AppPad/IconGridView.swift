@@ -90,6 +90,11 @@ struct IconGridView: View {
                 onLaunch: {
                     launchApp(icon)
                 },
+                onHide: {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                        viewModel.hideApp(icon)
+                    }
+                },
                 onDrop: { source, target in
                     viewModel.handleDrop(source: source, target: target)
                 }

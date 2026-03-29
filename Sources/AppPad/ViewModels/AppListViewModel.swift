@@ -19,6 +19,8 @@ class AppListViewModel: ObservableObject {
     private let scanner = AppScanner()
     private var cancellables = Set<AnyCancellable>()
     private var modelContext: ModelContext?
+    private var hiddenBundleIdentifiers = Set<String>()
+    private var scannedAppMap: [String: AppIcon] = [:]
 
     init() {
         $searchText
@@ -126,6 +128,7 @@ class AppListViewModel: ObservableObject {
 
         Task {
             let foundApps = await scanner.scanApplications()
+            self.scannedAppMap = Dictionary(uniqueKeysWithValues: foundApps.map { ($0.bundleIdentifier, $0) })
 
             // Try to load persisted state
             if let context = modelContext {
@@ -133,6 +136,7 @@ class AppListViewModel: ObservableObject {
             } else {
                 self.apps = foundApps
                 self.folders = []
+                self.hiddenBundleIdentifiers = []
             }
 
             rebuildGridItems()
@@ -148,6 +152,7 @@ class AppListViewModel: ObservableObject {
         
         Task {
             let scannedApps = await scanner.scanApplications()
+            self.scannedAppMap = Dictionary(uniqueKeysWithValues: scannedApps.map { ($0.bundleIdentifier, $0) })
             let scannedBundleIds = Set(scannedApps.map { $0.bundleIdentifier })
             
             // Get all current app bundle IDs (both in root and in folders)
@@ -155,13 +160,14 @@ class AppListViewModel: ObservableObject {
             for folder in folders {
                 currentBundleIds.formUnion(folder.appIcons.map { $0.bundleIdentifier })
             }
+            let knownBundleIds = currentBundleIds.union(hiddenBundleIdentifiers)
             
             // Find new apps (installed since last load)
-            let newBundleIds = scannedBundleIds.subtracting(currentBundleIds)
+            let newBundleIds = scannedBundleIds.subtracting(knownBundleIds)
             let newApps = scannedApps.filter { newBundleIds.contains($0.bundleIdentifier) }
             
             // Find removed apps (uninstalled since last load)
-            let removedBundleIds = currentBundleIds.subtracting(scannedBundleIds)
+            let removedBundleIds = knownBundleIds.subtracting(scannedBundleIds)
             
             var hasChanges = false
             
@@ -193,6 +199,11 @@ class AppListViewModel: ObservableObject {
                 if apps.count != beforeCount {
                     hasChanges = true
                     print("AppPad: Removed \(removedBundleIds.count) uninstalled app(s)")
+                }
+
+                if !hiddenBundleIdentifiers.isDisjoint(with: removedBundleIds) {
+                    hiddenBundleIdentifiers.subtract(removedBundleIds)
+                    hasChanges = true
                 }
             }
             
@@ -358,26 +369,47 @@ class AppListViewModel: ObservableObject {
         draggedIcon = nil
     }
 
+    func hideApp(_ app: AppIcon) {
+        hiddenBundleIdentifiers.insert(app.bundleIdentifier)
+        removeAppFromVisibleCollections(app)
+        reindexPositions()
+        rebuildGridItems()
+        saveToPersistence()
+    }
+
     // MARK: - Drag & Drop
 
     func handleDrop(source: AppIcon, target: AppIcon) {
+        guard searchText.isEmpty else { return }
+
         if isEditMode {
             // Create folder from two apps
             createFolder(from: source, onto: target)
         } else {
-            // Swap positions
-            swapPositions(source: source, target: target)
+            moveApp(source: source, to: target)
         }
     }
 
-    private func swapPositions(source: AppIcon, target: AppIcon) {
-        guard let sourceIndex = apps.firstIndex(where: { $0.id == source.id }),
-              let targetIndex = apps.firstIndex(where: { $0.id == target.id }) else { return }
+    private func moveApp(source: AppIcon, to target: AppIcon) {
+        var orderedItems = rootItems()
+        guard
+            let sourceIndex = orderedItems.firstIndex(where: { item in
+                if case .app(let icon) = item { return icon.id == source.id }
+                return false
+            }),
+            let targetIndex = orderedItems.firstIndex(where: { item in
+                if case .app(let icon) = item { return icon.id == target.id }
+                return false
+            })
+        else {
+            return
+        }
 
-        let tempPosition = apps[sourceIndex].position
-        apps[sourceIndex].position = apps[targetIndex].position
-        apps[targetIndex].position = tempPosition
+        let movingItem = orderedItems.remove(at: sourceIndex)
+        let insertionIndex = sourceIndex < targetIndex ? max(targetIndex - 1, 0) : targetIndex
+        orderedItems.insert(movingItem, at: insertionIndex)
 
+        applyRootOrder(orderedItems)
         rebuildGridItems()
         saveToPersistence()
     }
@@ -386,10 +418,7 @@ class AppListViewModel: ObservableObject {
 
     private func reindexPositions() {
         // Reindex root apps and folders by current order
-        var allItems: [GridItem] = []
-        allItems += apps.filter { $0.folderId == nil }.map { .app($0) }
-        allItems += folders.map { .folder($0) }
-        allItems.sort { $0.position < $1.position }
+        let allItems = rootItems()
 
         for (i, item) in allItems.enumerated() {
             switch item {
@@ -432,6 +461,14 @@ class AppListViewModel: ObservableObject {
     func saveToPersistence() {
         guard let context = modelContext else { return }
 
+        let visibleBundleIdentifiers = Set(allAppsFlat().map(\.bundleIdentifier))
+        let activeBundleIdentifiers = visibleBundleIdentifiers.union(hiddenBundleIdentifiers)
+        let existingAppEntities = (try? context.fetch(FetchDescriptor<AppIconEntity>())) ?? []
+
+        for entity in existingAppEntities where !activeBundleIdentifiers.contains(entity.bundleIdentifier) {
+            context.delete(entity)
+        }
+
         // Save folders
         do {
             try context.delete(model: FolderEntity.self)
@@ -447,19 +484,28 @@ class AppListViewModel: ObservableObject {
 
             // Save folder apps with folderId
             for app in folder.appIcons {
-                saveAppEntity(app: app, folderId: folder.id, context: context)
+                saveAppEntity(app: app, folderId: folder.id, isHidden: false, context: context)
             }
         }
 
         // Save root-level apps
         for app in apps where app.folderId == nil {
-            saveAppEntity(app: app, folderId: nil, context: context)
+            saveAppEntity(app: app, folderId: nil, isHidden: false, context: context)
+        }
+
+        for bundleIdentifier in hiddenBundleIdentifiers {
+            if let app = scannedAppMap[bundleIdentifier] {
+                saveAppEntity(app: app, folderId: nil, isHidden: true, context: context)
+            } else if let existing = existingAppEntities.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
+                existing.folderId = nil
+                existing.isHidden = true
+            }
         }
 
         try? context.save()
     }
 
-    private func saveAppEntity(app: AppIcon, folderId: UUID?, context: ModelContext) {
+    private func saveAppEntity(app: AppIcon, folderId: UUID?, isHidden: Bool, context: ModelContext) {
         let predicate = #Predicate<AppIconEntity> { entity in
             entity.bundleIdentifier == app.bundleIdentifier
         }
@@ -470,13 +516,15 @@ class AppListViewModel: ObservableObject {
             existing.folderId = folderId
             existing.name = app.name
             existing.iconPath = app.iconPath
+            existing.isHidden = isHidden
         } else {
             let entity = AppIconEntity(
                 bundleIdentifier: app.bundleIdentifier,
                 name: app.name,
                 iconPath: app.iconPath,
                 position: app.position,
-                folderId: folderId
+                folderId: folderId,
+                isHidden: isHidden
             )
             context.insert(entity)
         }
@@ -492,6 +540,8 @@ class AppListViewModel: ObservableObject {
         let savedAppEntities = (try? context.fetch(appDescriptor)) ?? []
 
         let savedAppMap = Dictionary(uniqueKeysWithValues: savedAppEntities.map { ($0.bundleIdentifier, $0) })
+        let hiddenBundleIdentifiers = Set(savedAppEntities.filter(\.isHidden).map(\.bundleIdentifier))
+        self.hiddenBundleIdentifiers = hiddenBundleIdentifiers
 
         // Build folders
         var loadedFolders: [Folder] = []
@@ -499,6 +549,7 @@ class AppListViewModel: ObservableObject {
             var folderApps: [AppIcon] = []
             for scannedApp in scannedApps {
                 if let saved = savedAppMap[scannedApp.bundleIdentifier],
+                   !saved.isHidden,
                    saved.folderId == folderEntity.id {
                     var app = scannedApp
                     app.folderId = folderEntity.id
@@ -523,7 +574,8 @@ class AppListViewModel: ObservableObject {
         let folderAppIds = Set(loadedFolders.flatMap { $0.appIcons.map { $0.bundleIdentifier } })
         var rootApps: [AppIcon] = []
         for scannedApp in scannedApps {
-            if !folderAppIds.contains(scannedApp.bundleIdentifier) {
+            if !folderAppIds.contains(scannedApp.bundleIdentifier),
+               !hiddenBundleIdentifiers.contains(scannedApp.bundleIdentifier) {
                 var app = scannedApp
                 if let saved = savedAppMap[app.bundleIdentifier] {
                     app.position = saved.position
@@ -537,6 +589,46 @@ class AppListViewModel: ObservableObject {
 
         self.apps = rootApps
         self.folders = loadedFolders
+    }
+
+    private func rootItems() -> [GridItem] {
+        var items: [GridItem] = []
+        items += apps.filter { $0.folderId == nil }.map { .app($0) }
+        items += folders.map { .folder($0) }
+        items.sort { $0.position < $1.position }
+        return items
+    }
+
+    private func applyRootOrder(_ items: [GridItem]) {
+        for (index, item) in items.enumerated() {
+            switch item {
+            case .app(let app):
+                if let appIndex = apps.firstIndex(where: { $0.id == app.id }) {
+                    apps[appIndex].position = index
+                }
+            case .folder(let folder):
+                if let folderIndex = folders.firstIndex(where: { $0.id == folder.id }) {
+                    folders[folderIndex].position = index
+                }
+            }
+        }
+    }
+
+    private func removeAppFromVisibleCollections(_ app: AppIcon) {
+        apps.removeAll { $0.id == app.id }
+
+        for folderIndex in folders.indices {
+            folders[folderIndex].appIcons.removeAll { $0.id == app.id }
+        }
+
+        var foldersToDissolve: [Int] = []
+        for folderIndex in folders.indices where folders[folderIndex].appIcons.count <= 1 {
+            foldersToDissolve.append(folderIndex)
+        }
+
+        for folderIndex in foldersToDissolve.reversed() {
+            dissolveFolder(at: folderIndex)
+        }
     }
 }
 
