@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import CoreServices
 
 /// A service to scan for installed applications on macOS.
 /// It uses NSMetadataQuery to perform a system-wide Spotlight search for applications.
@@ -29,7 +30,12 @@ actor AppScanner {
                 let localizedFileName = fileManager.displayName(atPath: fullPath)
                 let localizedResourceValues = try? appURL.resourceValues(forKeys: [.localizedNameKey])
                 let localizedResourceName = localizedResourceValues?.localizedName
+                let metadataItem = MDItemCreateWithURL(kCFAllocatorDefault, appURL as CFURL)
+                let spotlightDisplayName = metadataItem.flatMap {
+                    MDItemCopyAttribute($0, kMDItemDisplayName) as? String
+                }
                 let nameCandidates = [
+                    spotlightDisplayName,
                     localizedResourceName,
                     localizedFileName,
                     localizedInfo?["CFBundleDisplayName"] as? String,
@@ -44,6 +50,7 @@ actor AppScanner {
                     .first ?? fileName
 
                 let searchAliases = Self.uniqueNames(from: [
+                    spotlightDisplayName,
                     localizedResourceName,
                     localizedFileName,
                     localizedInfo?["CFBundleDisplayName"] as? String,
