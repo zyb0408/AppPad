@@ -1,245 +1,257 @@
-# AppPad - macOS Launchpad 复刻版
+# AppPad
 
-一个功能强大、高度可定制的macOS应用启动器，复刻并增强了原生Launchpad的体验。
+AppPad 是一个基于 SwiftUI + AppKit 构建的 macOS Launchpad 替代品。它提供全屏应用网格、中文/英文/拼音搜索、文件夹管理、全局快捷键、可选热角，以及可自定义的界面手势。
 
-## ✨ 主要特性
+当前版本：`1.0.3`
 
-### 已实现功能
-- ✅ **全屏透明毛玻璃界面** - 类似原生Launchpad的视觉效果
-- ✅ **应用自动扫描** - 自动发现系统中所有已安装的应用
-- ✅ **智能搜索** - 支持拼音搜索和首字母搜索
-- ✅ **分页浏览** - 手势翻页，页面指示器
-- ✅ **全局快捷键** - Option + Space 快速唤起
-- ✅ **平滑动画** - 缩放+淡入淡出效果
-- ✅ **菜单栏集成** - 常驻菜单栏，快速访问
-- ✅ **丰富的设置** - 图标大小、网格布局、动画速度等
-- ✅ **文件夹支持** - 创建、命名、展开和管理应用文件夹
-- ✅ **可靠的文本输入** - 搜索框和文件夹名称编辑完全可用
+## 主要特性
 
-### 开发中功能
-- 🚧 **拖拽重排序** - 自由调整应用图标位置
-- 🚧 **编辑模式** - 长按进入编辑模式，删除应用
-- 🚧 **触发角** - 鼠标移到屏幕角落激活
-- 🚧 **启动时启动** - 系统启动时自动运行（使用 ServiceManagement）
+### 已实现
+- 全屏启动器界面，支持缩放 + 淡入淡出动画
+- 自动扫描 `/Applications`、`/System/Applications` 和 `~/Applications`
+- 优先显示应用的本地化名称
+- 搜索支持中文名、英文名、拼音全拼、拼音首字母
+- 每次打开都会重置为新的搜索会话，并自动聚焦搜索框
+- 分页浏览与页面指示器
+- 全局快捷键唤醒，支持在设置中自定义
+- 可选热角触发：左上 / 右上 / 左下 / 右下
+- 应用内可自定义手势：
+  - 左滑 / 右滑 / 上滑 / 下滑
+  - 向内捏合 / 向外展开
+- 拖拽交换根级应用位置
+- 编辑模式下拖拽应用到另一个应用上创建文件夹
+- 拖拽应用到文件夹图标中，将应用加入文件夹
+- 文件夹重命名、展开、删除、从文件夹中移出应用
+- 菜单栏常驻
+- 登录时启动
+- 设置页支持重置为默认配置
 
-## 🚀 快速开始
+### 当前限制
+- 编辑模式中的删除按钮还没有接实际“隐藏/删除应用”逻辑
+- 拖拽排序目前是交换位置模型，不是任意插入式重排
+- 手势只在 AppPad 已打开且位于前台时生效；后台全局触控板手势不在支持范围内
 
-### 系统要求
-- macOS 14.0 (Sonoma) 或更高版本
-- Xcode 15.0+ (用于构建)
-- Swift 6.0+
+## 系统要求
 
-### 构建方法
+- macOS 14.0 或更高版本
+- Xcode 15+
+- Swift 6
 
-#### 方法一：使用Xcode（推荐）
+## 快速开始
+
+### 使用 Xcode
+
 ```bash
-# 1. 克隆或下载项目
 cd /Users/yingbin/Downloads/Projects/AppPad
-
-# 2. 打开Xcode项目
 open Package.swift
-
-# 3. 在Xcode中按 Cmd+R 运行
 ```
 
-#### 方法二：命令行构建
-```bash
-# 构建
-swift build -c release
+然后在 Xcode 中按 `Cmd+R` 运行。
 
-# 运行
+### 使用命令行
+
+```bash
+cd /Users/yingbin/Downloads/Projects/AppPad
+swift build
+.build/debug/AppPad
+```
+
+发布构建：
+
+```bash
+swift build -c release
 .build/release/AppPad
 ```
 
-### 首次运行
+## 首次运行
 
-1. **授予权限**：首次运行时，系统可能要求授予以下权限：
-   - 辅助功能访问（用于全局快捷键）
-   - 完全磁盘访问（用于扫描所有应用）
+首次使用时，macOS 可能会要求授予以下权限：
 
-2. **配置快捷键**：
-   - 默认快捷键：`Option + Space`
-   - 可在设置中查看和配置
+- 辅助功能：用于全局快捷键
+- 登录项权限：启用“登录时启动”时由系统处理
 
-## 📖 使用指南
+如果全局快捷键没有响应，请先检查“系统设置 > 隐私与安全性 > 辅助功能”。
 
-### 基本操作
+## 使用说明
 
-#### 打开AppPad
-- 按 `Option + Space`（全局快捷键）
-- 点击菜单栏图标 → "Toggle AppPad"
+### 打开与关闭
 
-#### 关闭AppPad
-- 按 `Esc` 键
+打开 AppPad：
+- 默认快捷键 `Option + Space`
+- 菜单栏图标
+- 已启用的热角
+
+关闭 AppPad：
+- `Esc`
 - 点击背景空白区域
-- 再次按 `Option + Space`
+- 使用已映射为“关闭 AppPad”的界面手势
+- 再次触发快捷键或热角动作（取决于你的热角设置）
 
-#### 搜索应用
-1. 打开AppPad后，直接开始输入
-2. 支持中文拼音搜索
-3. 支持首字母缩写（如：wx → 微信）
+### 搜索
 
-#### 翻页
-- 双指在触控板上左右滑动
-- 点击底部页面指示器圆点
+打开 AppPad 后可以直接输入，支持：
 
-#### 文件夹操作
-- **查看文件夹内容**：点击文件夹图标
-- **编辑文件夹名称**：点击文件夹展开后，在名称字段输入新名称
-- **从文件夹移出应用**：打开文件夹后，右键点击应用选择"从文件夹移出"
-- **关闭文件夹**：点击背景暗化区域
+- 中文名称搜索
+- 英文名称搜索
+- 拼音全拼搜索
+- 拼音首字母搜索
 
-#### 启动应用
-- 点击应用图标
-- 应用启动后，AppPad自动隐藏
+示例：
+- `微信`
+- `WeChat`
+- `weixin`
+- `wx`
 
-### 设置选项
+每次重新打开 AppPad 时：
+- 搜索内容会被清空
+- 光标会自动回到搜索框
 
-打开设置：点击菜单栏图标 → "Settings..."
+### 翻页与手势
 
-#### 外观标签页
-- **图标大小**：40-120px，默认80px
-- **网格列数**：4-12列，默认7列
-- **网格行数**：3-10行，默认5行
-- **背景模糊**：0-100%，默认100%
+默认界面手势：
+- 左滑：上一页
+- 右滑：下一页
+- 上滑：无动作
+- 下滑：关闭 AppPad
+- 向内捏合：无动作
+- 向外展开：无动作
 
-#### 行为标签页
-- **手势灵敏度**：翻页冷却时间，0.1-1.5秒
-- **动画速度**：打开/关闭动画时长
-- **全局快捷键**：启用/禁用 Option+Space
+这些动作都可以在设置页中重新映射。
 
-#### 通用标签页
-- **开机启动**：系统启动时自动运行（开发中）
-- **版本信息**：查看当前版本
-- **重置设置**：恢复默认配置
+### 文件夹与拖拽
 
-## 🎨 自定义
+- 普通状态下拖拽应用到另一个应用：交换位置
+- 编辑模式下拖拽应用到另一个应用：创建文件夹
+- 拖拽应用到文件夹图标：加入文件夹
+- 点击文件夹：展开
+- 在展开视图中直接编辑文件夹名称
+- 在展开视图中可将应用移出文件夹
 
-### 修改快捷键
-当前版本默认使用 `Option + Space`。未来版本将支持自定义快捷键组合。
+进入编辑模式：
+- 长按应用图标
 
-### 调整网格布局
-根据屏幕大小和个人喜好调整：
-- **小屏幕**：建议 5列 × 4行
-- **标准屏幕**：建议 7列 × 5行（默认）
-- **大屏幕**：建议 9列 × 6行
+### 启动应用
 
-### 图标大小建议
-- **紧凑布局**：40-60px
-- **标准布局**：70-90px（默认80px）
-- **宽松布局**：100-120px
+- 点击应用图标即可启动
+- 启动后 AppPad 会自动隐藏
 
-## 🛠️ 开发
+## 设置说明
 
-### 项目结构
-```
+设置窗口分为三个标签页。
+
+### 外观
+
+- 图标大小：`40-120 px`
+- 网格列数：`4-12`
+- 网格行数：`3-10`
+- 背景颜色
+- 背景透明度
+
+### 行为
+
+- 界面手势开关
+- 手势冷却时间
+- 每个手势对应的动作映射
+- 热角开关
+- 热角位置
+- 热角触发动作
+- 动画速度
+- 全局快捷键启用/禁用
+- 自定义全局快捷键
+
+### 通用
+
+- 登录时启动
+- 当前版本
+- 构建日期
+- 恢复默认设置
+
+## 默认配置
+
+- 版本：`1.0.3`
+- 构建日期：`2026.03.29`
+- 图标大小：`80 px`
+- 网格：`7 x 5`
+- 动画速度：`0.2 秒`
+- 默认快捷键：`Option + Space`
+- 热角：默认关闭
+
+## 项目结构
+
+```text
 AppPad/
 ├── Sources/AppPad/
-│   ├── AppPadApp.swift              # 应用入口 + AppDelegate
-│   ├── ContentView.swift            # 主视图，处理分页和文件夹叠加层
-│   ├── MainWindow.swift             # 自定义NSWindow，处理全屏和文本输入
-│   ├── SettingsView.swift           # 设置界面
-│   ├── ClickableHostingView.swift    # 自定义NSView，用于检测背景点击
+│   ├── AppPadApp.swift
+│   ├── ContentView.swift
+│   ├── MainWindow.swift
+│   ├── SettingsView.swift
+│   ├── ClickableHostingView.swift
 │   ├── Models/
-│   │   ├── AppIcon.swift            # 应用图标模型（内存中）
-│   │   └── DataModels.swift         # SwiftData实体（AppIconEntity, FolderEntity等）
+│   │   ├── AppIcon.swift
+│   │   └── DataModels.swift
 │   ├── Services/
-│   │   ├── AppScanner.swift         # Actor-based应用扫描服务
-│   │   ├── GlobalHotkeyManager.swift # Carbon API全局快捷键
-│   │   └── WindowAnimationManager.swift # NSAnimationContext窗口动画
+│   │   ├── AppScanner.swift
+│   │   ├── AppPadInputManager.swift
+│   │   ├── GlobalHotkeyManager.swift
+│   │   ├── LaunchAtLoginManager.swift
+│   │   └── WindowAnimationManager.swift
 │   ├── ViewModels/
-│   │   └── AppListViewModel.swift   # 中央状态容器（应用列表、搜索、文件夹）
+│   │   └── AppListViewModel.swift
 │   ├── Extensions/
-│   │   └── Color+Hex.swift          # 颜色十六进制扩展
+│   │   └── Color+Hex.swift
 │   └── Views/
-│       ├── SearchField.swift        # SwiftUI搜索框组件
-│       ├── DraggableAppIcon.swift   # 可拖拽的应用图标
-│       ├── FolderIconView.swift     # 文件夹图标（带mini网格预览）
-│       ├── FolderExpandedView.swift # 文件夹展开视图（可编辑名称）
-│       ├── PageGestureView.swift    # 手势处理（分页、长按）
-│       └── IconGridView.swift       # 应用图标网格（支持应用和文件夹）
-├── Package.swift                     # Swift Package配置
-├── CLAUDE.md                         # Claude AI开发指南
-└── README.md                         # 项目文档
+│       ├── SearchField.swift
+│       ├── DraggableAppIcon.swift
+│       ├── FolderIconView.swift
+│       ├── FolderExpandedView.swift
+│       ├── HotkeyRecorderView.swift
+│       ├── IconGridView.swift
+│       └── PageGestureView.swift
+├── Package.swift
+├── FEATURE_COMPARISON.md
+├── AGENTS.md
+└── README.md
 ```
 
-### 技术栈
-- **UI框架**：SwiftUI + AppKit（混合方案）
-- **数据持久化**：SwiftData（实体：AppIconEntity、FolderEntity、UserPreferencesEntity）
-- **全局快捷键**：Carbon API
-- **动画**：NSAnimationContext + SwiftUI Transitions
-- **响应式**：Combine + @AppStorage + @StateObject
-- **并发**：Actor-based（AppScanner）+ Task/MainActor
-- **窗口管理**：自定义NSWindow + NSPanel属性
+## 技术栈
 
-### 贡献指南
-欢迎贡献！请查看 `IMPROVEMENTS.md` 了解待完成的功能。
+- UI：SwiftUI + AppKit
+- 数据持久化：SwiftData
+- 全局快捷键：Carbon API
+- 动画：`NSAnimationContext`
+- 响应式状态：`Combine`、`@StateObject`、`@AppStorage`
+- 并发：`actor` + `Task` + `MainActor`
 
-## 📋 未来工作计划
+## 已知问题
 
-### 高优先级
-1. ✅ ~~完成SwiftData集成~~ （已完成）
-2. ✅ ~~实现文件夹功能~~ （已完成）
-3. ✅ ~~修复文本输入问题~~ （已完成 v1.1.0）
-4. 实现拖拽重排序并持久化
-5. 完成删除应用功能（编辑模式）
+- `swift build` 会提示 `Info.plist` 和 `Assets.xcassets` 是未声明资源；当前不影响本地构建，但后续可以在 `Package.swift` 里进一步整理
+- 后台全局触控板手势不是目标能力；全局入口使用快捷键和热角
 
-### 中优先级
-6. 搜索结果突出显示和键盘导航
-7. 热角支持（角落检测 + 窗口显示）
-8. 自定义快捷键配置UI
-9. 启动时启动（ServiceManagement框架）
+## 开发建议
 
-### 低优先级
-10. Metal渲染优化（Liquid Glass效果）
-11. 图标缓存层（NSImage）
-12. 120fps动画目标
-13. 主题系统增强
+常用命令：
 
-## 📝 更新日志
+```bash
+swift build
+swift build -c release
+./run.sh
+```
 
-### v1.1.0 (2026-02-22)
-- ✅ 文件夹支持完整实现（创建、命名、展开、应用管理）
-- ✅ 文本输入修复（搜索框和文件夹名称编辑）
-- ✅ SwiftData集成完成
-- ✅ 改进的UI/UX（文件夹预览网格、展开动画）
-- ✅ 应用图标和图标主题优化
+如果需要清理构建缓存：
 
-### v1.0.0 (2026-02-04)
-- ✅ 初始版本发布
-- ✅ 基础应用扫描和显示
-- ✅ 全局快捷键支持
-- ✅ 平滑动画效果
-- ✅ 增强的设置界面
-- ✅ 拼音搜索支持
+```bash
+rm -rf .build
+```
 
-## 🐛 已知问题
+## 路线图
 
-1. **权限问题**：首次运行需要授予多项权限
-   - 辅助功能（用于全局快捷键）
-   - 完全磁盘访问（用于扫描所有应用）
+优先级较高的后续工作：
 
-2. **拖拽重排序**：UI已准备就绪但数据持久化未完成
+1. 完成编辑模式中的应用隐藏/删除逻辑
+2. 优化拖拽排序体验，支持更细粒度重排
+3. 增强搜索结果高亮与键盘导航
+4. 持续优化图标加载和动画流畅度
 
-### ✅ 最近修复
-
-**文本输入问题（2026-02-07）** - 已解决
-- 原因：NSPanel 的 `.fullSizeContentView` 样式掩码阻止了文本输入
-- 解决方案：移除 `.fullSizeContentView`，添加 `worksWhenModal = true` 属性
-- 结果：搜索框和文件夹名称编辑现在完全可用
-
-## 📄 许可证
+## 许可证
 
 本项目仅供学习和个人使用。
-
-## 🙏 致谢
-
-灵感来源于macOS原生Launchpad，致力于提供更好的用户体验和更多的自定义选项。
-
-## 📧 联系方式
-
-如有问题或建议，请提交Issue。
-
----
-
-**注意**：本项目正在积极开发中。查看上面的"未来工作计划"部分了解开发路线图。
