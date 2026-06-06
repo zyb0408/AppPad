@@ -7,6 +7,7 @@ struct FolderExpandedView: View {
 
     @AppStorage("iconSize") private var iconSize: Double = 80.0
     @State private var folderName: String = ""
+    @State private var draggingBundleId: String?
     @FocusState private var isEditingName: Bool
 
     private var displayColumns: Int {
@@ -43,6 +44,11 @@ struct FolderExpandedView: View {
                     ForEach(folder.appIcons) { icon in
                         AppIconView(icon: icon, size: iconSize)
                             .contentShape(Rectangle())
+                            .opacity(draggingBundleId == icon.bundleIdentifier ? 0.4 : 1.0)
+                            .onDrag {
+                                draggingBundleId = icon.bundleIdentifier
+                                return NSItemProvider(object: icon.bundleIdentifier as NSString)
+                            }
                             .onTapGesture {
                                 launchApp(icon)
                             }

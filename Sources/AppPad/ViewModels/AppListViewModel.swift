@@ -312,9 +312,12 @@ class AppListViewModel: ObservableObject {
         appCopy.position = (gridItems.map { $0.position }.max() ?? 0) + 1
         apps.append(appCopy)
 
-        // Auto-dissolve folder if ≤ 1 app
+        // Auto-dissolve folder if <= 1 app
         if folders[folderIndex].appIcons.count <= 1 {
             dissolveFolder(at: folderIndex)
+            if openFolderId == folderId {
+                openFolderId = nil
+            }
         }
 
         reindexPositions()

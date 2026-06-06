@@ -54,6 +54,9 @@ struct ContentView: View {
                                 viewModel.closeFolder()
                             }
                         }
+                        .onDrop(of: [.text], isTargeted: nil) { providers in
+                            handleFolderDrop(providers: providers, folder: folder)
+                        }
 
                     FolderExpandedView(viewModel: viewModel, folder: folder)
                         .transition(.scale.combined(with: .opacity))
@@ -148,6 +151,23 @@ struct ContentView: View {
         } message: {
             Text(viewModel.deletionError?.message ?? "")
         }
+    }
+
+    private func handleFolderDrop(providers: [NSItemProvider], folder: Folder) -> Bool {
+        guard let provider = providers.first else { return false }
+        provider.loadItem(forTypeIdentifier: "public.text", options: nil) { data, _ in
+            guard let data = data as? Data, let bundleId = String(data: data, encoding: .utf8) else { return }
+            Task { @MainActor in
+                guard let app = folder.appIcons.first(where: { $0.bundleIdentifier == bundleId }) else { return }
+                viewModel.removeAppFromFolder(app: app, folderId: folder.id)
+                if viewModel.getOpenFolder() == nil {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        viewModel.closeFolder()
+                    }
+                }
+            }
+        }
+        return true
     }
 
     private func handleBackgroundTap() {
