@@ -31,7 +31,8 @@ if [ -z "$APPLE_SIGNING_IDENTITY" ] || [ -z "$APPLE_API_ISSUER" ] || [ -z "$APPL
     exit 1
 fi
 
-echo -e "${GREEN}=== 开始打包流程: ${APP_NAME} (Swift Build 模式) ===${NC}"
+BUILD_DATE=$(date +"%Y.%m.%d")
+echo -e "${GREEN}=== 开始打包流程: ${APP_NAME} v${VERSION} (${BUILD_DATE}) ===${NC}"
 echo -e "签名身份: ${APPLE_SIGNING_IDENTITY}"
 
 # 1. 清理工作目录
@@ -39,6 +40,16 @@ echo -e "${YELLOW}[1/7] 清理构建目录...${NC}"
 rm -rf "$BUILD_DIR"
 rm -f "$DMG_NAME"
 mkdir -p "$BUILD_DIR"
+
+# 更新 SettingsView.swift 中的版本号和构建日期
+SETTINGS_FILE="Sources/AppPad/SettingsView.swift"
+if [ -f "$SETTINGS_FILE" ]; then
+    echo -e "${YELLOW}更新版本号和构建日期...${NC}"
+    sed -i '' -E 's/(SettingsRowView\(label: "版本", labelWidth: labelWidth\) \{[[:space:]]*$)/\1/' "$SETTINGS_FILE"
+    sed -i '' -E '/SettingsRowView\(label: "版本"/{ n; s/Text\("[0-9]+\.[0-9]+\.[0-9]+"\)/Text("'"$VERSION"'")/; }' "$SETTINGS_FILE"
+    sed -i '' -E '/SettingsRowView\(label: "构建日期"/{ n; s/Text\("[0-9]{4}\.[0-9]{2}\.[0-9]{2}"\)/Text("'"$BUILD_DATE"'")/; }' "$SETTINGS_FILE"
+    echo -e "${GREEN}版本: ${VERSION}, 构建日期: ${BUILD_DATE}${NC}"
+fi
 
 # 2. 编译 Release 版本
 echo -e "${YELLOW}[2/7] 编译 Release 版本...${NC}"

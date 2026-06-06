@@ -354,13 +354,13 @@ struct SettingsView: View {
                 SettingsSectionView(title: "关于") {
                     VStack(spacing: 12) {
                         SettingsRowView(label: "版本", labelWidth: labelWidth) {
-                            Text("1.0.4")
+                            Text("1.0.8")
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
 
                         SettingsRowView(label: "构建日期", labelWidth: labelWidth) {
-                            Text("2026.03.29")
+                            Text("2026.06.06")
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
