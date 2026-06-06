@@ -210,7 +210,7 @@ class AppListViewModel: ObservableObject {
             }
             
             // Update app icons for existing apps (in case icons changed)
-            let scannedAppMap = Dictionary(uniqueKeysWithValues: scannedApps.map { ($0.bundleIdentifier, $0) })
+            let scannedAppMap = Dictionary(scannedApps.map { ($0.bundleIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
             for i in apps.indices {
                 if let updated = scannedAppMap[apps[i].bundleIdentifier] {
                     if apps[i].name != updated.name ||
@@ -560,7 +560,7 @@ class AppListViewModel: ObservableObject {
         let appDescriptor = FetchDescriptor<AppIconEntity>()
         let savedAppEntities = (try? context.fetch(appDescriptor)) ?? []
 
-        let savedAppMap = Dictionary(uniqueKeysWithValues: savedAppEntities.map { ($0.bundleIdentifier, $0) })
+        let savedAppMap = Dictionary(savedAppEntities.map { ($0.bundleIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
         let hiddenBundleIdentifiers = Set(savedAppEntities.filter(\.isHidden).map(\.bundleIdentifier))
         self.hiddenBundleIdentifiers = hiddenBundleIdentifiers
 
