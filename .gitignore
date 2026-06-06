@@ -4,3 +4,4 @@ AppPad.dmg
 .swiftpm
 *.xcresult
 .DS_Store
+*.dmg

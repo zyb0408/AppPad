@@ -1,8 +1,19 @@
 #!/bin/bash
 
+# ================= 版本号输入 =================
+read -p "请输入版本号 (例如 1.0.6): " VERSION
+if [ -z "$VERSION" ]; then
+    echo -e "\033[0;31m错误: 版本号不能为空\033[0m"
+    exit 1
+fi
+if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo -e "\033[0;31m错误: 版本号格式不正确，应为 x.y.z (例如 1.0.6)\033[0m"
+    exit 1
+fi
+
 # ================= 配置区域 =================
 APP_NAME="AppPad"
-DMG_NAME="${APP_NAME}.dmg"
+DMG_NAME="${APP_NAME}_${VERSION}.dmg"
 BUILD_DIR=".build_dist"
 APP_PATH="${BUILD_DIR}/${APP_NAME}.app"
 ENTITLEMENTS="AppPad.entitlements"
@@ -31,7 +42,10 @@ mkdir -p "$BUILD_DIR"
 
 # 2. 编译 Release 版本
 echo -e "${YELLOW}[2/7] 编译 Release 版本...${NC}"
-swift build -c release --arch arm64 --arch x86_64 || { echo -e "${RED}编译失败${NC}"; exit 1; }
+swift build -c release --arch arm64 --arch x86_64 || {
+    echo -e "${RED}编译失败${NC}"
+    exit 1
+}
 
 # 获取编译产物路径 (排除 dSYM)
 BINARY_PATH=$(find .build -name "$EXECUTABLE_NAME" -type f -not -path "*.dSYM*" | grep -i "release" | head -n 1)
@@ -89,7 +103,7 @@ else
 fi
 
 # 创建 Info.plist
-cat > "${APP_PATH}/Contents/Info.plist" <<EOF
+cat >"${APP_PATH}/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -101,9 +115,9 @@ cat > "${APP_PATH}/Contents/Info.plist" <<EOF
     <key>CFBundleName</key>
     <string>${APP_NAME}</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.4</string>
+    <string>${VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>1.0.4</string>
+    <string>${VERSION}</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
@@ -132,10 +146,16 @@ codesign --force --verify --verbose \
     --options runtime \
     --entitlements "$ENTITLEMENTS" \
     --deep \
-    "$APP_PATH" || { echo -e "${RED}签名失败${NC}"; exit 1; }
+    "$APP_PATH" || {
+    echo -e "${RED}签名失败${NC}"
+    exit 1
+}
 
 # 验证签名
-codesign --verify --verbose "$APP_PATH" || { echo -e "${RED}签名验证失败${NC}"; exit 1; }
+codesign --verify --verbose "$APP_PATH" || {
+    echo -e "${RED}签名验证失败${NC}"
+    exit 1
+}
 
 echo -e "${GREEN}App 签名成功${NC}"
 
@@ -152,13 +172,19 @@ ln -s /Applications "$DMG_SRC/Applications"
 hdiutil create -volname "$APP_NAME" \
     -srcfolder "$DMG_SRC" \
     -ov -format UDZO \
-    "$DMG_NAME" > /dev/null || { echo -e "${RED}DMG 创建失败${NC}"; exit 1; }
+    "$DMG_NAME" >/dev/null || {
+    echo -e "${RED}DMG 创建失败${NC}"
+    exit 1
+}
 
 echo -e "${GREEN}DMG 创建成功: ${DMG_NAME}${NC}"
 
 # 6. 签名 DMG
 echo -e "${YELLOW}[6/7] 正在签名 DMG...${NC}"
-codesign --sign "$APPLE_SIGNING_IDENTITY" "$DMG_NAME" || { echo -e "${RED}DMG 签名失败${NC}"; exit 1; }
+codesign --sign "$APPLE_SIGNING_IDENTITY" "$DMG_NAME" || {
+    echo -e "${RED}DMG 签名失败${NC}"
+    exit 1
+}
 echo -e "${GREEN}DMG 签名成功${NC}"
 
 # 7. 公证 (Notarize)
@@ -180,7 +206,10 @@ echo -e "${GREEN}公证通过！${NC}"
 
 # 8. 装订票据 (Staple)
 echo -e "${YELLOW}[8/8] 装订公证票据...${NC}"
-xcrun stapler staple "$DMG_NAME" || { echo -e "${RED}装订失败${NC}"; exit 1; }
+xcrun stapler staple "$DMG_NAME" || {
+    echo -e "${RED}装订失败${NC}"
+    exit 1
+}
 
 echo -e "${GREEN}==========================================${NC}"
 echo -e "${GREEN}🎉 打包完成！${NC}"

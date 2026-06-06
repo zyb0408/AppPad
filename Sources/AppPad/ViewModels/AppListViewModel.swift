@@ -130,7 +130,7 @@ class AppListViewModel: ObservableObject {
 
         Task {
             let foundApps = await scanner.scanApplications()
-            self.scannedAppMap = Dictionary(uniqueKeysWithValues: foundApps.map { ($0.bundleIdentifier, $0) })
+            self.scannedAppMap = Dictionary(foundApps.map { ($0.bundleIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
 
             // Try to load persisted state
             if let context = modelContext {
@@ -154,7 +154,7 @@ class AppListViewModel: ObservableObject {
         
         Task {
             let scannedApps = await scanner.scanApplications()
-            self.scannedAppMap = Dictionary(uniqueKeysWithValues: scannedApps.map { ($0.bundleIdentifier, $0) })
+            self.scannedAppMap = Dictionary(scannedApps.map { ($0.bundleIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
             let scannedBundleIds = Set(scannedApps.map { $0.bundleIdentifier })
             
             // Get all current app bundle IDs (both in root and in folders)
