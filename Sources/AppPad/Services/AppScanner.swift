@@ -97,7 +97,10 @@ actor AppScanner {
 
     private static func trimmedName(_ value: String?) -> String? {
         guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        var trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasSuffix(".app") {
+            trimmed = String(trimmed.dropLast(4))
+        }
         return trimmed.isEmpty ? nil : trimmed
     }
 }

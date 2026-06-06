@@ -354,7 +354,7 @@ struct SettingsView: View {
                 SettingsSectionView(title: "关于") {
                     VStack(spacing: 12) {
                         SettingsRowView(label: "版本", labelWidth: labelWidth) {
-                            Text("1.0.8")
+                            Text("1.0.9")
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
